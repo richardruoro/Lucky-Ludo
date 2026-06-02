@@ -33,7 +33,7 @@
 
     .ludo-board-wrapper {
       width: 100%;
-      max-width: 460px;
+      max-width: 620px;
       aspect-ratio: 1 / 1;
       position: relative;
       background: #dfc49f; /* Warm cardboard/wood paper backing */
@@ -96,10 +96,12 @@
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-4" onclick="AudioController.init()">
+<body class="min-h-screen p-3 md:p-4" onclick="AudioController.init()">
+
+  <div class="max-w-6xl mx-auto w-full space-y-4">
 
   <!-- Game Header -->
-  <header class="w-full max-w-lg mx-auto bg-stone-900/90 border border-stone-800 p-4 rounded-2xl shadow-xl flex justify-between items-center mb-4">
+  <header class="w-full bg-stone-900/90 border border-stone-800 p-4 rounded-2xl shadow-xl flex justify-between items-center">
     <div class="flex items-center gap-3">
       <div class="bg-amber-600/20 p-2.5 rounded-xl text-amber-500 border border-amber-600/30">
         <i data-lucide="coins" class="w-5 h-5"></i>
@@ -114,178 +116,195 @@
         </div>
       </div>
     </div>
-    <button onclick="toggleSetupModal(true)" class="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all border border-stone-700">
-      <i data-lucide="settings" class="w-3.5 h-3.5"></i> Settings
-    </button>
+    <div class="flex items-center gap-2">
+      <button id="mute-btn" onclick="toggleMute()" class="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all border border-stone-700">
+        <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Sound</span>
+      </button>
+      <button onclick="toggleSetupModal(true)" class="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all border border-stone-700">
+        <i data-lucide="settings" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Settings</span>
+      </button>
+    </div>
   </header>
 
-  <!-- Variable Stakes Configurations Panel -->
-  <section class="w-full max-w-lg mx-auto bg-stone-900/90 border border-stone-800 p-4 rounded-2xl shadow-xl mb-4 text-xs">
+  <!-- Variable Stakes & Wallet Balances Panel -->
+  <section class="w-full bg-stone-900/90 border border-stone-800 p-4 rounded-2xl shadow-xl text-xs">
     <div class="flex justify-between items-center border-b border-stone-800 pb-2.5 mb-2.5">
       <span class="text-stone-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
-        <i data-lucide="wallet" class="w-4 h-4 text-amber-500"></i> Variable Stakes Config
+        <i data-lucide="wallet" class="w-4 h-4 text-amber-500"></i> Stakes &amp; Wallet Balances
       </span>
       <span class="text-amber-400 font-extrabold text-sm" id="gross-pool-display">Gross Stakes: KES 190.00</span>
     </div>
 
-    <!-- Live Stake Controls -->
-    <div class="grid grid-cols-4 gap-2 mb-3">
+    <!-- Live Stake Controls + Wallets -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
       <div class="bg-stone-950/60 p-2 rounded-xl border border-stone-800">
         <span class="text-[9px] font-bold text-red-400 block">Red (You)</span>
         <input type="number" id="stake-red" value="10" min="1" onchange="recalculateMatchLobby()" class="stake-input w-full bg-stone-900 border border-stone-700 text-xs font-bold text-center rounded p-1 mt-1 text-white focus:outline-none focus:border-amber-500">
+        <div class="text-[9px] font-bold mt-1.5 flex justify-between items-center"><span class="text-stone-500">Wallet</span><span id="wallet-red" class="text-emerald-400">KES 1,000</span></div>
       </div>
       <div class="bg-stone-950/60 p-2 rounded-xl border border-stone-800">
         <span class="text-[9px] font-bold text-emerald-400 block">Green (AI)</span>
         <input type="number" id="stake-green" value="30" min="1" onchange="recalculateMatchLobby()" class="stake-input w-full bg-stone-900 border border-stone-700 text-xs font-bold text-center rounded p-1 mt-1 text-white focus:outline-none focus:border-amber-500">
+        <div class="text-[9px] font-bold mt-1.5 flex justify-between items-center"><span class="text-stone-500">Wallet</span><span id="wallet-green" class="text-emerald-400">KES 1,000</span></div>
       </div>
       <div class="bg-stone-950/60 p-2 rounded-xl border border-stone-800">
         <span class="text-[9px] font-bold text-yellow-400 block">Yellow (AI)</span>
         <input type="number" id="stake-yellow" value="50" min="1" onchange="recalculateMatchLobby()" class="stake-input w-full bg-stone-900 border border-stone-700 text-xs font-bold text-center rounded p-1 mt-1 text-white focus:outline-none focus:border-amber-500">
+        <div class="text-[9px] font-bold mt-1.5 flex justify-between items-center"><span class="text-stone-500">Wallet</span><span id="wallet-yellow" class="text-emerald-400">KES 1,000</span></div>
       </div>
       <div class="bg-stone-950/60 p-2 rounded-xl border border-stone-800">
         <span class="text-[9px] font-bold text-blue-400 block">Blue (AI)</span>
         <input type="number" id="stake-blue" value="100" min="1" onchange="recalculateMatchLobby()" class="stake-input w-full bg-stone-900 border border-stone-700 text-xs font-bold text-center rounded p-1 mt-1 text-white focus:outline-none focus:border-amber-500">
+        <div class="text-[9px] font-bold mt-1.5 flex justify-between items-center"><span class="text-stone-500">Wallet</span><span id="wallet-blue" class="text-emerald-400">KES 1,000</span></div>
       </div>
     </div>
   </section>
 
-  <!-- Classic Ludo Table Base -->
-  <main class="w-full max-w-lg mx-auto mb-4 flex flex-col items-center justify-center flex-grow">
-    <div class="wood-table p-4 w-full flex justify-center items-center">
-      <div class="ludo-board-wrapper">
-        <div id="board-container" class="ludo-grid gap-[1px]">
-          <!-- Populated dynamically via JS -->
+  <!-- Board + Control Deck: side-by-side on desktop, stacked (dice below board) on mobile -->
+  <div class="w-full flex flex-col lg:flex-row gap-4 items-stretch">
+
+    <!-- BOARD COLUMN (fills remaining width on desktop) -->
+    <main class="lg:flex-1 flex">
+      <div class="wood-table p-3 md:p-5 w-full flex justify-center items-center">
+        <div class="ludo-board-wrapper">
+          <div id="board-container" class="ludo-grid gap-[1px]">
+            <!-- Populated dynamically via JS -->
+          </div>
         </div>
       </div>
-    </div>
-  </main>
+    </main>
 
-  <!-- ✨ GEMINI AI LIVE COMMENTATOR COMPONENT ✨ -->
-  <section class="w-full max-w-lg mx-auto bg-stone-900 border border-stone-800 p-4 rounded-2xl shadow-lg mb-4 text-stone-200">
-    <div class="flex justify-between items-center border-b border-stone-800 pb-2.5 mb-3">
-      <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-        <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 animate-pulse"></i> ✨ Gemini AI Live Commentator
-      </span>
-      <button onclick="generateCustomTrashTalk()" class="bg-amber-500 hover:bg-amber-400 text-stone-950 text-[10px] font-extrabold px-3 py-1 rounded-lg transition-all shadow-md flex items-center gap-1">
-        <i data-lucide="zap" class="w-3 h-3"></i> ✨ Cash Trash Talk
-      </button>
-    </div>
+    <!-- CONTROL + INFO SIDEBAR -->
+    <aside class="w-full lg:w-[380px] lg:shrink-0 flex flex-col gap-4">
 
-    <div id="gemini-commentary-box" class="bg-stone-950 p-3.5 rounded-xl border border-stone-800 min-h-[60px] flex items-start gap-2.5">
-      <div class="bg-amber-500/10 p-1.5 rounded-lg text-amber-400 shrink-0 mt-0.5">
-        <i data-lucide="mic" class="w-4 h-4"></i>
-      </div>
-      <div>
-        <p id="gemini-commentary-text" class="text-xs md:text-sm leading-relaxed text-stone-300">
-          "Karibuni saneni! Place your bets and roll the dice. Let's see who conquers the board or loses their stake to the taxman!"
-        </p>
-        <span id="gemini-audio-status" class="text-[9px] text-slate-500 block mt-1 font-semibold">Voice synthesis ready</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- Multi-Player Dashboard Perspective Switcher -->
-  <section class="w-full max-w-lg mx-auto bg-stone-900 border border-stone-800 p-4 rounded-2xl shadow-sm mb-4">
-    <div class="flex justify-between items-center border-b border-stone-800 pb-2.5 mb-3">
-      <span class="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
-        <i data-lucide="smartphone" class="w-4 h-4 text-indigo-500"></i> Phone Screen Simulator
-      </span>
-      <span class="text-[10px] text-stone-400 italic">Toggle to see what each player sees</span>
-    </div>
-
-    <!-- Tab Buttons -->
-    <div class="grid grid-cols-4 gap-1.5 mb-4" id="dashboard-tabs">
-      <button onclick="switchScreenPerspective('red')" id="tab-red" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border-2 border-red-500 bg-red-950/20 text-red-400 transition-all">Red (You)</button>
-      <button onclick="switchScreenPerspective('green')" id="tab-green" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Green</button>
-      <button onclick="switchScreenPerspective('yellow')" id="tab-yellow" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Yellow</button>
-      <button onclick="switchScreenPerspective('blue')" id="tab-blue" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Blue</button>
-    </div>
-
-    <!-- Active Simulated Dashboard Display -->
-    <div class="bg-stone-950 p-3.5 rounded-xl border border-stone-800 space-y-2.5" id="perspective-screen">
-      <!-- Generated dynamically by renderPerspectiveScreen() -->
-    </div>
-  </section>
-
-  <!-- Bottom Action Bar -->
-  <section class="w-full max-w-lg mx-auto grid grid-cols-12 gap-3 items-stretch">
-    <!-- Active Turn Card -->
-    <div class="col-span-6 bg-stone-900 border border-stone-800 rounded-xl p-3 flex flex-col justify-between shadow-sm">
-      <div class="flex items-center gap-3">
-        <div id="turn-badge" class="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300">
-          <span id="turn-initial" class="text-lg font-black text-white"></span>
+      <!-- Control Deck: Active turn + 3D dice + Play / Simulate -->
+      <section class="bg-stone-900 border border-stone-800 rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center gap-3">
+          <div id="turn-badge" class="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300">
+            <span id="turn-initial" class="text-lg font-black text-white"></span>
+          </div>
+          <div class="overflow-hidden flex-grow">
+            <span class="text-[9px] text-stone-400 uppercase tracking-wider block">Active Turn</span>
+            <h2 id="turn-name" class="text-sm font-black text-stone-200 truncate">Player</h2>
+            <span id="turn-type-badge" class="text-[8px] px-1.5 py-0.2 bg-stone-950 border border-stone-800 text-stone-400 rounded-full inline-block mt-0.5 font-bold">Human</span>
+          </div>
         </div>
-        <div class="overflow-hidden">
-          <span class="text-[9px] text-stone-400 uppercase tracking-wider block">Active Turn</span>
-          <h2 id="turn-name" class="text-xs font-bold text-stone-200 truncate">Player</h2>
-          <span id="turn-type-badge" class="text-[8px] px-1.5 py-0.2 bg-stone-950 border border-stone-800 text-stone-400 rounded-full inline-block mt-0.5 font-bold">Human</span>
+
+        <!-- Clickable 3D Dice -->
+        <div onclick="handleDiceClick()" class="mt-3 bg-stone-950 border border-stone-800 rounded-xl p-4 flex items-center justify-between gap-2 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all">
+          <div id="player-glow" class="absolute -right-10 -top-10 w-20 h-20 rounded-full blur-[40px] opacity-15 transition-all duration-500"></div>
+
+          <div class="dice-scene flex items-center justify-center">
+            <div id="cube" class="cube">
+              <div class="cube-face face-1"><div class="col-start-2 row-start-2 dot"></div></div>
+              <div class="cube-face face-6">
+                <div class="dot"></div><div></div><div class="dot"></div>
+                <div class="dot"></div><div></div><div class="dot"></div>
+                <div class="dot"></div><div></div><div class="dot"></div>
+              </div>
+              <div class="cube-face face-3">
+                <div class="dot"></div><div></div><div></div>
+                <div></div><div class="dot"></div><div></div>
+                <div></div><div></div><div class="dot"></div>
+              </div>
+              <div class="cube-face face-4">
+                <div class="dot"></div><div></div><div class="dot"></div>
+                <div></div><div></div><div></div>
+                <div class="dot"></div><div></div><div class="dot"></div>
+              </div>
+              <div class="cube-face face-2">
+                <div class="dot"></div><div></div><div></div>
+                <div></div><div></div><div></div>
+                <div></div><div></div><div class="dot"></div>
+              </div>
+              <div class="cube-face face-5">
+                <div class="dot"></div><div></div><div class="dot"></div>
+                <div></div><div class="dot"></div><div></div>
+                <div class="dot"></div><div></div><div class="dot"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-grow flex flex-col items-end gap-1 select-none font-sans">
+            <button id="roll-btn" class="bg-amber-600 hover:bg-amber-500 text-stone-950 font-extrabold text-xs py-2 px-3 rounded-lg flex items-center gap-1 transition-all">
+              <i data-lucide="dices" class="w-3.5 h-3.5"></i> Roll
+            </button>
+            <span id="roll-prompt" class="text-[8px] text-stone-400 font-bold leading-none">Tap to Spin</span>
+          </div>
         </div>
-      </div>
-      <!-- Mode Toggle Switch (Autoplay simulation) -->
-      <div class="mt-3 pt-2.5 border-t border-stone-800 flex items-center justify-between">
-        <span class="text-[10px] font-extrabold uppercase text-stone-400 tracking-wider flex items-center gap-1">
-          <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-500"></i> AI Autopilot
+
+        <!-- Play / Simulate -->
+        <div class="grid grid-cols-2 gap-2 mt-3">
+          <button onclick="startPlay()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm">
+            <i data-lucide="play" class="w-4 h-4"></i> Play
+          </button>
+          <button onclick="startSimulate()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm">
+            <i data-lucide="fast-forward" class="w-4 h-4"></i> Simulate
+          </button>
+        </div>
+        <p class="text-[9px] text-stone-500 text-center mt-2 font-semibold">Play = you take Red's turns &middot; Simulate = AI rushes the whole match in seconds</p>
+      </section>
+
+      <!-- ✨ GEMINI AI LIVE COMMENTATOR COMPONENT ✨ -->
+      <section class="bg-stone-900 border border-stone-800 p-4 rounded-2xl shadow-lg text-stone-200">
+        <div class="flex justify-between items-center border-b border-stone-800 pb-2.5 mb-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 animate-pulse"></i> ✨ Live Commentator
+          </span>
+          <button onclick="generateCustomTrashTalk()" class="bg-amber-500 hover:bg-amber-400 text-stone-950 text-[10px] font-extrabold px-3 py-1 rounded-lg transition-all shadow-md flex items-center gap-1">
+            <i data-lucide="zap" class="w-3 h-3"></i> ✨ Trash Talk
+          </button>
+        </div>
+
+        <div id="gemini-commentary-box" class="bg-stone-950 p-3.5 rounded-xl border border-stone-800 min-h-[60px] flex items-start gap-2.5">
+          <div class="bg-amber-500/10 p-1.5 rounded-lg text-amber-400 shrink-0 mt-0.5">
+            <i data-lucide="mic" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <p id="gemini-commentary-text" class="text-xs md:text-sm leading-relaxed text-stone-300">
+              "Karibuni saneni! Place your bets and roll the dice. Let's see who conquers the board or loses their stake to the taxman!"
+            </p>
+            <span id="gemini-audio-status" class="text-[9px] text-slate-500 block mt-1 font-semibold">Voice synthesis ready</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Multi-Player Dashboard Perspective Switcher -->
+      <section class="bg-stone-900 border border-stone-800 p-4 rounded-2xl shadow-sm">
+        <div class="flex justify-between items-center border-b border-stone-800 pb-2.5 mb-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+            <i data-lucide="smartphone" class="w-4 h-4 text-indigo-500"></i> Phone Screen Simulator
+          </span>
+        </div>
+
+        <!-- Tab Buttons -->
+        <div class="grid grid-cols-4 gap-1.5 mb-4" id="dashboard-tabs">
+          <button onclick="switchScreenPerspective('red')" id="tab-red" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border-2 border-red-500 bg-red-950/20 text-red-400 transition-all">Red (You)</button>
+          <button onclick="switchScreenPerspective('green')" id="tab-green" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Green</button>
+          <button onclick="switchScreenPerspective('yellow')" id="tab-yellow" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Yellow</button>
+          <button onclick="switchScreenPerspective('blue')" id="tab-blue" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Blue</button>
+        </div>
+
+        <!-- Active Simulated Dashboard Display -->
+        <div class="bg-stone-950 p-3.5 rounded-xl border border-stone-800 space-y-2.5" id="perspective-screen">
+          <!-- Generated dynamically by renderPerspectiveScreen() -->
+        </div>
+      </section>
+
+      <!-- Match Console Logs -->
+      <div class="bg-stone-950 border border-stone-900 rounded-xl p-3 h-24 flex flex-col">
+        <span class="text-[9px] font-bold text-stone-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+          <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-500"></i> System Operations
         </span>
-        <label class="relative inline-flex items-center cursor-pointer select-none">
-          <input type="checkbox" id="autopilot-toggle" class="sr-only peer" onchange="toggleAutopilotMode(this)">
-          <div class="w-9 h-5 bg-stone-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-stone-300 after:border-stone-400 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500 peer-checked:after:bg-stone-950"></div>
-        </label>
-      </div>
-    </div>
-
-    <!-- Clickable 3D Dice Card -->
-    <div onclick="handleDiceClick()" class="col-span-6 bg-stone-900 border border-stone-800 rounded-xl p-3 flex items-center justify-between gap-2 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all shadow-sm">
-      <div id="player-glow" class="absolute -right-10 -top-10 w-20 h-20 rounded-full blur-[40px] opacity-15 transition-all duration-500"></div>
-
-      <div class="dice-scene flex items-center justify-center">
-        <div id="cube" class="cube">
-          <div class="cube-face face-1"><div class="col-start-2 row-start-2 dot"></div></div>
-          <div class="cube-face face-6">
-            <div class="dot"></div><div></div><div class="dot"></div>
-            <div class="dot"></div><div></div><div class="dot"></div>
-            <div class="dot"></div><div></div><div class="dot"></div>
-          </div>
-          <div class="cube-face face-3">
-            <div class="dot"></div><div></div><div></div>
-            <div></div><div class="dot"></div><div></div>
-            <div></div><div></div><div class="dot"></div>
-          </div>
-          <div class="cube-face face-4">
-            <div class="dot"></div><div></div><div class="dot"></div>
-            <div></div><div></div><div></div>
-            <div class="dot"></div><div></div><div class="dot"></div>
-          </div>
-          <div class="cube-face face-2">
-            <div class="dot"></div><div></div><div></div>
-            <div></div><div></div><div></div>
-            <div></div><div></div><div class="dot"></div>
-          </div>
-          <div class="cube-face face-5">
-            <div class="dot"></div><div></div><div class="dot"></div>
-            <div></div><div class="dot"></div><div></div>
-            <div class="dot"></div><div></div><div class="dot"></div>
-          </div>
+        <div id="log-container" class="flex-grow overflow-y-auto space-y-1 text-[10px] font-mono pr-1 text-stone-400">
+          <!-- Appends dynamically -->
         </div>
       </div>
 
-      <div class="flex-grow flex flex-col items-end gap-1 select-none font-sans">
-        <button id="roll-btn" class="bg-amber-600 hover:bg-amber-500 text-stone-950 font-extrabold text-xs py-2 px-3 rounded-lg flex items-center gap-1 transition-all">
-          <i data-lucide="dices" class="w-3.5 h-3.5"></i> Roll
-        </button>
-        <span id="roll-prompt" class="text-[8px] text-stone-400 font-bold leading-none">Tap to Spin</span>
-      </div>
-    </div>
+    </aside>
+  </div>
 
-    <!-- Match Console Logs -->
-    <div class="col-span-12 bg-stone-950 border border-stone-900 rounded-xl p-3 h-20 flex flex-col">
-      <span class="text-[9px] font-bold text-stone-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-        <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-500"></i> System Operations
-      </span>
-      <div id="log-container" class="flex-grow overflow-y-auto space-y-1 text-[10px] font-mono pr-1 text-stone-400">
-        <!-- Appends dynamically -->
-      </div>
-    </div>
-  </section>
+  </div><!-- /max-w wrapper -->
 
   <!-- Setup Modal -->
   <div id="setup-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
@@ -335,9 +354,14 @@
         </div>
       </div>
 
-      <button onclick="startGame()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors shadow-sm">
-        <i data-lucide="play" class="w-4 h-4"></i> Start Simulation
-      </button>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="startPlay()" class="bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+          <i data-lucide="play" class="w-4 h-4"></i> Play
+        </button>
+        <button onclick="startSimulate()" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+          <i data-lucide="fast-forward" class="w-4 h-4"></i> Simulate
+        </button>
+      </div>
     </div>
   </div>
 
@@ -422,7 +446,17 @@
     var winnerDeclared = null;
     var autoMoveTimer = null;
     var aiThreadTimer = null;
-    var fullSimulationAutopilot = false; // Tracks if "Full AI Autopilot" toggle is active
+    var fullSimulationAutopilot = false; // every seat played by the AI (used by Simulate)
+    var simMode = false;                 // turbo mode: rush the whole match in seconds, no audio
+
+    // --- WALLET STATE (persists across matches) ---
+    var STARTING_WALLET = 1000;
+    var wallets = { red: STARTING_WALLET, green: STARTING_WALLET, yellow: STARTING_WALLET, blue: STARTING_WALLET };
+
+    // Delay helper: in turbo Simulate mode every timeout collapses to a tiny
+    // flat value so a full ~400-roll game resolves in a few seconds; in normal
+    // Play mode the original, human-paced timing is left untouched.
+    function spd(ms) { return simMode ? 5 : ms; }
 
     // --- SYSTEM TIMER STATE ---
     var gameTimerInterval = null;
@@ -438,6 +472,7 @@
     const AudioController = {
       ctx: null,
       ready: false,
+      muted: false,
       init() {
         try {
           if (!this.ctx) {
@@ -450,7 +485,7 @@
         } catch (e) { /* audio unavailable - fail silently */ }
       },
       tone(freq, duration, type = 'sine', volume = 0.2, delay = 0) {
-        if (!this.ctx) return;
+        if (!this.ctx || this.muted || simMode) return;
         const start = this.ctx.currentTime + delay;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -545,9 +580,26 @@
       if (el) el.innerText = text;
     }
 
+    // Mute toggle: silences the Web Audio engine AND voice commentary.
+    function toggleMute() {
+      AudioController.muted = !AudioController.muted;
+      if (AudioController.muted && 'speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+      }
+      const btn = document.getElementById('mute-btn');
+      if (btn) {
+        btn.innerHTML = AudioController.muted
+          ? '<i data-lucide="volume-x" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Muted</span>'
+          : '<i data-lucide="volume-2" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Sound</span>';
+        btn.classList.toggle('text-rose-400', AudioController.muted);
+      }
+      renderIcons();
+    }
+
     // Browser speech synthesis = working "voice" with zero dependencies.
     function speakCommentary(text) {
       try {
+        if (AudioController.muted || simMode) { setAudioStatus('Voice synthesis ready'); return; }
         if (!('speechSynthesis' in window)) { setAudioStatus('Voice synthesis ready'); return; }
         window.speechSynthesis.cancel();
         const utter = new SpeechSynthesisUtterance(text);
@@ -596,6 +648,8 @@
     }
 
     async function requestGeminiCommentary(prompt) {
+      // Turbo Simulate: keep the board updating cheaply — no API, status or voice.
+      if (simMode) { setCommentaryText(localCommentary(prompt)); return; }
       setAudioStatus('✨ Analyzing stakes…');
       let text;
       if (GEMINI_API_KEY) {
@@ -719,6 +773,17 @@
       renderIcons();
     }
 
+    // --- WALLET DISPLAY ---
+    function renderWallets() {
+      PLAYERS.forEach(c => {
+        const el = document.getElementById(`wallet-${c}`);
+        if (!el) return;
+        const bal = wallets[c];
+        el.innerText = `KES ${bal.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+        el.className = bal < 0 ? 'text-rose-400' : 'text-emerald-400';
+      });
+    }
+
     // --- RE-CALCULATE POOL & RE-RENDER ---
     function recalculateMatchLobby() {
       PLAYERS.forEach(color => {
@@ -729,6 +794,7 @@
       const totalActiveStakes = activePlayers.reduce((acc, c) => acc + playerStakes[c], 0);
       document.getElementById('gross-pool-display').innerText = `Gross Match Stakes: KES ${totalActiveStakes.toFixed(2)}`;
 
+      renderWallets();
       renderPerspectiveScreen();
     }
 
@@ -829,7 +895,7 @@
       }).join(' | ');
 
       let activeMatchedPoolIfIWin = 0;
-      PLAYERS.forEach(other => {
+      activePlayers.forEach(other => {
         if (other === pColor) return;
         activeMatchedPoolIfIWin += Math.min(myStake, playerStakes[other]);
       });
@@ -940,7 +1006,7 @@
 
         const winStake = playerStakes[winnerColor];
         let activePool = winStake;
-        PLAYERS.forEach(other => {
+        activePlayers.forEach(other => {
           if (other === winnerColor) return;
           activePool += Math.min(winStake, playerStakes[other]);
         });
@@ -951,6 +1017,16 @@
         const taxW = Math.max(0, netW - winStake);
         const wht = taxW * 0.20;
         const takeHome = netW - wht;
+
+        // --- SETTLE WALLETS ---
+        // Winner banks net winnings (take-home minus their own stake); each
+        // loser only forfeits what was matched against the winner's stake.
+        wallets[winnerColor] += (takeHome - winStake);
+        activePlayers.forEach(c => {
+          if (c === winnerColor) return;
+          wallets[c] -= Math.min(winStake, playerStakes[c]);
+        });
+        renderWallets();
 
         document.getElementById('payout-announcement').innerText = `Winner Payout: KES ${takeHome.toFixed(2)} | KRA Taxes Withheld: KES ${(exc + wht).toFixed(2)}`;
         modal.classList.remove('hidden');
@@ -1002,6 +1078,7 @@
       startTimer();
       document.getElementById('log-container').innerHTML = '';
       logMessage('🍀 P2P Match successfully initialized!', 'text-indigo-400 font-bold');
+      logMessage(simMode ? '⏩ Turbo Simulation — rushing the match…' : '▶️ Play mode — your move, boss.', simMode ? 'text-indigo-400 font-bold' : 'text-emerald-400 font-bold');
 
       updateTurnIndicator();
       updateBoardPieces();
@@ -1011,13 +1088,24 @@
       requestGeminiCommentary(`Ludo match initialized. Active player stakes: Red: KES ${playerStakes.red}, Green: KES ${playerStakes.green}, Yellow: KES ${playerStakes.yellow}, Blue: KES ${playerStakes.blue}. Highlight the highest and lowest stakes.`);
     }
 
-    // Autopilot state handler
-    function toggleAutopilotMode(toggleElement) {
-      fullSimulationAutopilot = toggleElement.checked;
-      logMessage(`🤖 AI Autopilot Simulator toggled ${fullSimulationAutopilot ? 'ON' : 'OFF'}.`, 'text-amber-400 font-bold');
-      updateTurnIndicator();
-      updateBoardPieces();
-      checkComputerAutoplay();
+    // --- MATCH ENTRY POINTS ---
+    // Play: a normal match where you (Red, if Human) take your own turns.
+    function startPlay() {
+      simMode = false;
+      fullSimulationAutopilot = false;
+      startGame();
+    }
+
+    // Simulate: every seat is AI-driven and the match is rushed in turbo speed.
+    function startSimulate() {
+      simMode = true;
+      fullSimulationAutopilot = true;
+      // Promote every non-disabled seat to a computer so nothing waits on a human.
+      PLAYERS.forEach(c => {
+        const sel = document.getElementById(`role-${c}`);
+        if (sel && sel.value !== 'disabled') sel.value = 'computer';
+      });
+      startGame();
     }
 
     function updateTurnIndicator() {
@@ -1122,7 +1210,7 @@
           } else {
             nextTurn();
           }
-        }, 1200);
+        }, spd(1200));
       } else {
         gameState = 'waiting-for-move';
         updateTurnIndicator();
@@ -1136,9 +1224,9 @@
           logMessage(`⚡ Auto-moving piece ${onlyMoveIndex + 1} (Only valid move!)`, 'text-indigo-400 text-[10px]');
           autoMoveTimer = setTimeout(() => {
             makeMove(onlyMoveIndex);
-          }, 800);
+          }, spd(800));
         } else if (!isHuman) {
-          aiThreadTimer = setTimeout(makeComputerChoice, 1000);
+          aiThreadTimer = setTimeout(makeComputerChoice, spd(1000));
         }
       }
     }
@@ -1201,6 +1289,14 @@
       eligibleTokens = [];
       updateTurnIndicator();
 
+      // Turbo Simulate: skip the per-cell hop animation and jump straight there.
+      if (simMode) {
+        tokens[activeColor][tokenIdx] = endStep;
+        updateBoardPieces();
+        concludeMovement(tokenIdx, endStep);
+        return;
+      }
+
       let stepCounter = startStep;
 
       function hopStep() {
@@ -1210,7 +1306,7 @@
 
           AudioController.playMove();
           updateBoardPieces();
-          setTimeout(hopStep, 150);
+          setTimeout(hopStep, spd(150));
         } else {
           concludeMovement(tokenIdx, endStep);
         }
@@ -1289,12 +1385,13 @@
       const activeColor = PLAYERS[turnIndex];
       const isComputer = playerRoles[activeColor] === 'computer' || fullSimulationAutopilot;
       if (isComputer && gameState === 'waiting-for-roll') {
-        aiThreadTimer = setTimeout(rollDice, 1100);
+        aiThreadTimer = setTimeout(rollDice, spd(1100));
       }
     }
 
     window.onload = () => {
       initBoard();
+      renderWallets();
       switchScreenPerspective('red');
       toggleSetupModal(true);
     };

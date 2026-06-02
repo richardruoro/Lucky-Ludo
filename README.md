@@ -19,11 +19,17 @@ a smart computer opponent, a per-player "phone screen" simulator, and a
 
 1. Open the game — the **Match Lobby** lets you set each colour to Human,
    Computer AI, or Disabled (minimum 2 active players).
-2. Adjust each player's **stake** in the Variable Stakes panel.
-3. **Tap the dice** to roll. Roll a **6** to bring a token out of its yard.
-4. Land on an opponent (off a safe ★ square) to **capture** it back to base.
-5. Get all four tokens home first to **win** the pot.
-6. Flip **AI Autopilot** to watch the computers play it out themselves.
+2. Adjust each player's **stake** in the Stakes &amp; Wallet panel — each player
+   carries a running **wallet balance** that settles after every match.
+3. Press **▶ Play** for a normal match where you take your own turns, or
+   **⏩ Simulate** to let the AI rush the whole game to a result in seconds.
+4. **Tap the dice** to roll. Roll a **6** to bring a token out of its yard.
+5. Land on an opponent (off a safe ★ square) to **capture** it back to base.
+6. Get all four tokens home first to **win** the pot.
+7. Use the **🔊 Sound** button in the header to mute/unmute all audio + voice.
+
+On desktop the dice and controls sit **beside** the board and the layout uses
+the full width; on mobile everything stacks and the dice drops **below** it.
 
 ## ✨ AI Commentator
 
@@ -44,6 +50,12 @@ Everything lives in `index.html`:
 - **Rules engine** — rolling, eligible-move detection, animated hops,
   captures, safe squares, three-sixes forfeit, and extra turns on 6 / capture.
 - **Computer AI** — scores moves (finish > capture > leave base > advance).
+  Verified fair via Monte Carlo: a uniform 1–6 dice, every game terminates,
+  and wins land ~25% per seat with no positional bias.
+- **Turbo Simulate** — collapses all animation/turn delays and teleports
+  pieces so a full ~400-roll match resolves in a few seconds.
+- **Wallets** — per-player balances that escrow stakes and settle winnings,
+  refunds and KRA taxes when a match resolves.
 - **Payout matrix** — platform fee, KRA excise & withholding tax, and a
   second-place safety-net refund, shown from each player's perspective.
 

@@ -37,6 +37,10 @@ const required = [
   'function requestGeminiCommentary',
   'function generateCustomTrashTalk',
   'function getTokenCoords',
+  'function startPlay',
+  'function startSimulate',
+  'function toggleMute',
+  'function renderWallets',
 ];
 const missing = required.filter((sig) => !html.includes(sig));
 if (missing.length) {
