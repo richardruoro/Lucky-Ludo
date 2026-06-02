@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- Chosen Palette: Warm Sand & Emerald Harmony (Minimalistic light mode with premium dark-slate controls) -->
+  <title>Ludo Wooden Classic - P2P Stakes with ✨ Gemini AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at center, #3a2212, #140b05);
+      color: #f1f5f9;
+      touch-action: manipulation;
+    }
+
+    /* Wooden Table Texture & Shadows */
+    .wood-table {
+      background: #8b5a2b; /* Fallback */
+      background: repeating-linear-gradient(90deg, #5c3a21 0px, #5c3a21 40px, #4a2e1a 40px, #4a2e1a 80px);
+      box-shadow: inset 0 0 100px rgba(0,0,0,0.8), 0 20px 50px rgba(0,0,0,0.9);
+      border: 16px solid #2e1a0c;
+      border-radius: 24px;
+    }
+
+    /* Hand-Drawn Sketch Circular Yards */
+    .yard-sketch {
+      border: 4px dashed rgba(0, 0, 0, 0.35);
+      background-image: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.05) 45%, transparent 50%);
+    }
+
+    .ludo-board-wrapper {
+      width: 100%;
+      max-width: 460px;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      background: #dfc49f; /* Warm cardboard/wood paper backing */
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.3);
+      border: 8px solid #3d2516;
+    }
+
+    .ludo-grid {
+      display: grid;
+      grid-template-columns: repeat(15, 1fr);
+      grid-template-rows: repeat(15, 1fr);
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 3D Dice styling */
+    .dice-scene {
+      perspective: 300px;
+    }
+    .cube {
+      width: 52px;
+      height: 52px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .cube-face {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      background: #fcf6eb;
+      border: 2px solid #5c3a21;
+      border-radius: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 5px;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.25), 0 4px 6px rgba(0,0,0,0.4);
+    }
+    .dot {
+      background-color: #311c0f;
+      border-radius: 50%;
+      width: 8px;
+      height: 8px;
+      margin: auto;
+    }
+
+    /* Standard 3D rotations for the 6 dice faces */
+    .face-1 { transform: rotateY(0deg) translateZ(26px); }
+    .face-6 { transform: rotateY(180deg) translateZ(26px); }
+    .face-3 { transform: rotateY(90deg) translateZ(26px); }
+    .face-4 { transform: rotateY(-90deg) translateZ(26px); }
+    .face-2 { transform: rotateX(90deg) translateZ(26px); }
+    .face-5 { transform: rotateX(-90deg) translateZ(26px); }
+
+    /* Classic Ludo Sketch Tokens */
+    .wooden-pawn {
+      box-shadow: 0 4px 6px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.4);
+      background-image: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.25) 0%, transparent 60%);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4" onclick="AudioController.init()">
+
+  <!-- Game Header -->
+  <header class="w-full max-w-lg mx-auto bg-stone-900/90 border border-stone-800 p-4 rounded-2xl shadow-xl flex justify-between items-center mb-4">
+    <div class="flex items-center gap-3">
+      <div class="bg-amber-600/20 p-2.5 rounded-xl text-amber-500 border border-amber-600/30">
+        <i data-lucide="coins" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-extrabold text-stone-100 tracking-tight flex items-center gap-2">
+          LUDO CLASSIC <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] px-1.5 py-0.2 rounded font-bold">STAKES MATCH</span>
+        </h1>
+        <div class="flex items-center gap-1.5 text-xs text-stone-400 font-bold mt-0.5">
+          <i data-lucide="timer" class="w-3.5 h-3.5 text-amber-500"></i>
+          <span id="game-timer">00:00</span>
+        </div>
+      </div>
+    </div>
+    <button onclick="toggleSetupModal(true)" class="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all border border-stone-700">
+      <i data-lucide="settings" class="w-3.5 h-3.5"></i> Settings
+    </button>
+  </header>
+
+  <!-- Variable Stakes Configurations Panel -->
+  <section class="w-full max-w-lg mx-auto bg-stone-900/90 border border-stone-800 p-4 rounded-2xl shadow-xl mb-4 text-xs">
+    <div class="flex justify-between items-center border-b border-stone-800 pb-2.5 mb-2.5">
+      <span class="text-stone-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+        <i data-lucide="wallet" class="w-4 h-4 text-amber-500"></i> Variable Stakes Config
+      </span>
+      <span class="text-amber-400 font-extrabold text-sm" id="gross-pool-display">Gross Stakes: KES 190.00</span>
+    </div>
+
+    <!-- Live Stake Controls -->
+    <div class="grid grid-cols-4 gap-2 mb-3">
+      <div class="bg-stone-950/60 p-2 rounded-xl border border-stone-800">
+        <span class="text-[9px] font-bold text-red-400 block">Red (You)</span>
+        <input type="number" id="stake-red" value="10" min="1" onchange="recalculateMatchLobby()" class="stake-input w-full bg-stone-900 border border-stone-700 text-xs font-bold text-center rounded p-1 mt-1 text-white focus:outline-none focus:border-amber-500">
+      </div>
+      <div class="bg-stone-950/60 p-2 rounded-xl border border-stone-800">
+        <span class="text-[9px] font-bold text-emerald-400 block">Green (AI)</span>
+        <input type="number" id="stake-green" value="30" min="1" onchange="recalculateMatchLobby()" class="stake-input w-full bg-stone-900 border border-stone-700 text-xs font-bold text-center rounded p-1 mt-1 text-white focus:outline-none focus:border-amber-500">
+      </div>
+      <div class="bg-stone-950/60 p-2 rounded-xl border border-stone-800">
+        <span class="text-[9px] font-bold text-yellow-400 block">Yellow (AI)</span>
+        <input type="number" id="stake-yellow" value="50" min="1" onchange="recalculateMatchLobby()" class="stake-input w-full bg-stone-900 border border-stone-700 text-xs font-bold text-center rounded p-1 mt-1 text-white focus:outline-none focus:border-amber-500">
+      </div>
+      <div class="bg-stone-950/60 p-2 rounded-xl border border-stone-800">
+        <span class="text-[9px] font-bold text-blue-400 block">Blue (AI)</span>
+        <input type="number" id="stake-blue" value="100" min="1" onchange="recalculateMatchLobby()" class="stake-input w-full bg-stone-900 border border-stone-700 text-xs font-bold text-center rounded p-1 mt-1 text-white focus:outline-none focus:border-amber-500">
+      </div>
+    </div>
+  </section>
+
+  <!-- Classic Ludo Table Base -->
+  <main class="w-full max-w-lg mx-auto mb-4 flex flex-col items-center justify-center flex-grow">
+    <div class="wood-table p-4 w-full flex justify-center items-center">
+      <div class="ludo-board-wrapper">
+        <div id="board-container" class="ludo-grid gap-[1px]">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ✨ GEMINI AI LIVE COMMENTATOR COMPONENT ✨ -->
+  <section class="w-full max-w-lg mx-auto bg-stone-900 border border-stone-800 p-4 rounded-2xl shadow-lg mb-4 text-stone-200">
+    <div class="flex justify-between items-center border-b border-stone-800 pb-2.5 mb-3">
+      <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+        <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 animate-pulse"></i> ✨ Gemini AI Live Commentator
+      </span>
+      <button onclick="generateCustomTrashTalk()" class="bg-amber-500 hover:bg-amber-400 text-stone-950 text-[10px] font-extrabold px-3 py-1 rounded-lg transition-all shadow-md flex items-center gap-1">
+        <i data-lucide="zap" class="w-3 h-3"></i> ✨ Cash Trash Talk
+      </button>
+    </div>
+
+    <div id="gemini-commentary-box" class="bg-stone-950 p-3.5 rounded-xl border border-stone-800 min-h-[60px] flex items-start gap-2.5">
+      <div class="bg-amber-500/10 p-1.5 rounded-lg text-amber-400 shrink-0 mt-0.5">
+        <i data-lucide="mic" class="w-4 h-4"></i>
+      </div>
+      <div>
+        <p id="gemini-commentary-text" class="text-xs md:text-sm leading-relaxed text-stone-300">
+          "Karibuni saneni! Place your bets and roll the dice. Let's see who conquers the board or loses their stake to the taxman!"
+        </p>
+        <span id="gemini-audio-status" class="text-[9px] text-slate-500 block mt-1 font-semibold">Voice synthesis ready</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Multi-Player Dashboard Perspective Switcher -->
+  <section class="w-full max-w-lg mx-auto bg-stone-900 border border-stone-800 p-4 rounded-2xl shadow-sm mb-4">
+    <div class="flex justify-between items-center border-b border-stone-800 pb-2.5 mb-3">
+      <span class="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+        <i data-lucide="smartphone" class="w-4 h-4 text-indigo-500"></i> Phone Screen Simulator
+      </span>
+      <span class="text-[10px] text-stone-400 italic">Toggle to see what each player sees</span>
+    </div>
+
+    <!-- Tab Buttons -->
+    <div class="grid grid-cols-4 gap-1.5 mb-4" id="dashboard-tabs">
+      <button onclick="switchScreenPerspective('red')" id="tab-red" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border-2 border-red-500 bg-red-950/20 text-red-400 transition-all">Red (You)</button>
+      <button onclick="switchScreenPerspective('green')" id="tab-green" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Green</button>
+      <button onclick="switchScreenPerspective('yellow')" id="tab-yellow" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Yellow</button>
+      <button onclick="switchScreenPerspective('blue')" id="tab-blue" class="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all">Blue</button>
+    </div>
+
+    <!-- Active Simulated Dashboard Display -->
+    <div class="bg-stone-950 p-3.5 rounded-xl border border-stone-800 space-y-2.5" id="perspective-screen">
+      <!-- Generated dynamically by renderPerspectiveScreen() -->
+    </div>
+  </section>
+
+  <!-- Bottom Action Bar -->
+  <section class="w-full max-w-lg mx-auto grid grid-cols-12 gap-3 items-stretch">
+    <!-- Active Turn Card -->
+    <div class="col-span-6 bg-stone-900 border border-stone-800 rounded-xl p-3 flex flex-col justify-between shadow-sm">
+      <div class="flex items-center gap-3">
+        <div id="turn-badge" class="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300">
+          <span id="turn-initial" class="text-lg font-black text-white"></span>
+        </div>
+        <div class="overflow-hidden">
+          <span class="text-[9px] text-stone-400 uppercase tracking-wider block">Active Turn</span>
+          <h2 id="turn-name" class="text-xs font-bold text-stone-200 truncate">Player</h2>
+          <span id="turn-type-badge" class="text-[8px] px-1.5 py-0.2 bg-stone-950 border border-stone-800 text-stone-400 rounded-full inline-block mt-0.5 font-bold">Human</span>
+        </div>
+      </div>
+      <!-- Mode Toggle Switch (Autoplay simulation) -->
+      <div class="mt-3 pt-2.5 border-t border-stone-800 flex items-center justify-between">
+        <span class="text-[10px] font-extrabold uppercase text-stone-400 tracking-wider flex items-center gap-1">
+          <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-500"></i> AI Autopilot
+        </span>
+        <label class="relative inline-flex items-center cursor-pointer select-none">
+          <input type="checkbox" id="autopilot-toggle" class="sr-only peer" onchange="toggleAutopilotMode(this)">
+          <div class="w-9 h-5 bg-stone-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-stone-300 after:border-stone-400 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500 peer-checked:after:bg-stone-950"></div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Clickable 3D Dice Card -->
+    <div onclick="handleDiceClick()" class="col-span-6 bg-stone-900 border border-stone-800 rounded-xl p-3 flex items-center justify-between gap-2 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all shadow-sm">
+      <div id="player-glow" class="absolute -right-10 -top-10 w-20 h-20 rounded-full blur-[40px] opacity-15 transition-all duration-500"></div>
+
+      <div class="dice-scene flex items-center justify-center">
+        <div id="cube" class="cube">
+          <div class="cube-face face-1"><div class="col-start-2 row-start-2 dot"></div></div>
+          <div class="cube-face face-6">
+            <div class="dot"></div><div></div><div class="dot"></div>
+            <div class="dot"></div><div></div><div class="dot"></div>
+            <div class="dot"></div><div></div><div class="dot"></div>
+          </div>
+          <div class="cube-face face-3">
+            <div class="dot"></div><div></div><div></div>
+            <div></div><div class="dot"></div><div></div>
+            <div></div><div></div><div class="dot"></div>
+          </div>
+          <div class="cube-face face-4">
+            <div class="dot"></div><div></div><div class="dot"></div>
+            <div></div><div></div><div></div>
+            <div class="dot"></div><div></div><div class="dot"></div>
+          </div>
+          <div class="cube-face face-2">
+            <div class="dot"></div><div></div><div></div>
+            <div></div><div></div><div></div>
+            <div></div><div></div><div class="dot"></div>
+          </div>
+          <div class="cube-face face-5">
+            <div class="dot"></div><div></div><div class="dot"></div>
+            <div></div><div class="dot"></div><div></div>
+            <div class="dot"></div><div></div><div class="dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-grow flex flex-col items-end gap-1 select-none font-sans">
+        <button id="roll-btn" class="bg-amber-600 hover:bg-amber-500 text-stone-950 font-extrabold text-xs py-2 px-3 rounded-lg flex items-center gap-1 transition-all">
+          <i data-lucide="dices" class="w-3.5 h-3.5"></i> Roll
+        </button>
+        <span id="roll-prompt" class="text-[8px] text-stone-400 font-bold leading-none">Tap to Spin</span>
+      </div>
+    </div>
+
+    <!-- Match Console Logs -->
+    <div class="col-span-12 bg-stone-950 border border-stone-900 rounded-xl p-3 h-20 flex flex-col">
+      <span class="text-[9px] font-bold text-stone-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+        <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-500"></i> System Operations
+      </span>
+      <div id="log-container" class="flex-grow overflow-y-auto space-y-1 text-[10px] font-mono pr-1 text-stone-400">
+        <!-- Appends dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Setup Modal -->
+  <div id="setup-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-xs w-full p-5 shadow-2xl text-slate-900">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="bg-emerald-100 p-2 rounded-lg text-emerald-600">
+          <i data-lucide="banknote" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-black text-slate-900">Simulation Match Lobby</h3>
+          <p class="text-[10px] text-slate-500 font-medium">Configure roles for the demo</p>
+        </div>
+      </div>
+
+      <div class="space-y-2.5 mb-4">
+        <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="font-bold text-xs">Red (You)</span>
+          <select id="role-red" class="bg-white border border-slate-200 rounded text-[10px] font-bold p-1 text-slate-800">
+            <option value="human" selected>Human</option>
+            <option value="computer">Computer AI</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="font-bold text-xs">Green</span>
+          <select id="role-green" class="bg-white border border-slate-200 rounded text-[10px] font-bold p-1 text-slate-800">
+            <option value="human">Human</option>
+            <option value="computer" selected>Computer AI</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="font-bold text-xs">Yellow</span>
+          <select id="role-yellow" class="bg-white border border-slate-200 rounded text-[10px] font-bold p-1 text-slate-800">
+            <option value="human">Human</option>
+            <option value="computer" selected>Computer AI</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="font-bold text-xs">Blue</span>
+          <select id="role-blue" class="bg-white border border-slate-200 rounded text-[10px] font-bold p-1 text-slate-800">
+            <option value="human">Human</option>
+            <option value="computer" selected>Computer AI</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+      </div>
+
+      <button onclick="startGame()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+        <i data-lucide="play" class="w-4 h-4"></i> Start Simulation
+      </button>
+    </div>
+  </div>
+
+  <!-- Win Modal -->
+  <div id="gameover-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-xs w-full p-6 text-center text-slate-900 shadow-3xl">
+      <div class="w-12 h-12 bg-emerald-100 border border-emerald-300 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+        <i data-lucide="award" class="w-6 h-6 animate-bounce"></i>
+      </div>
+      <h3 class="text-base font-extrabold mb-1">Match Resolved!</h3>
+      <p id="winner-announcement" class="text-xs font-bold text-slate-600 mb-2"></p>
+      <p id="payout-announcement" class="text-sm font-black text-emerald-600 mb-4 bg-emerald-50 py-2 rounded-lg border border-emerald-100"></p>
+      <button onclick="toggleSetupModal(true); toggleGameOverModal(false);" class="w-full bg-slate-900 hover:bg-slate-800 py-2 rounded-xl text-xs font-bold text-white transition-colors">
+        Configure Next Demo
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // --- GLOBAL GAME CONSTANTS (DECLARED FIRST TO PREVENT TDZ REFERENCE ERRORS) ---
+    const PLAYERS = ['red', 'green', 'yellow', 'blue'];
+    const PLAYER_STYLES = {
+      red: { name: 'Red', bg: 'bg-red-500', text: 'text-red-500', border: 'border-red-500', hover: 'hover:shadow-red-500/50', hex: '#ef4444' },
+      green: { name: 'Green', bg: 'bg-emerald-500', text: 'text-emerald-500', border: 'border-emerald-500', hover: 'hover:shadow-emerald-500/50', hex: '#10b981' },
+      yellow: { name: 'Yellow', bg: 'bg-yellow-500', text: 'text-yellow-500', border: 'border-yellow-500', hover: 'hover:shadow-yellow-500/50', hex: '#eab308' },
+      blue: { name: 'Blue', bg: 'bg-blue-500', text: 'text-blue-500', border: 'border-blue-500', hover: 'hover:shadow-blue-500/50', hex: '#3b82f6' }
+    };
+
+    // Standard board track configuration maps (52 cells, indices 0-51)
+    const TRACK_COORDS = [
+      {r: 6, c: 0},  {r: 6, c: 1},  {r: 6, c: 2},  {r: 6, c: 3},  {r: 6, c: 4},  {r: 6, c: 5},
+      {r: 5, c: 6},  {r: 4, c: 6},  {r: 3, c: 6},  {r: 2, c: 6},  {r: 1, c: 6},  {r: 0, c: 6},
+      {r: 0, c: 7},
+      {r: 0, c: 8},  {r: 1, c: 8},  {r: 2, c: 8},  {r: 3, c: 8},  {r: 4, c: 8},  {r: 5, c: 8},
+      {r: 6, c: 9},  {r: 6, c: 10}, {r: 6, c: 11}, {r: 6, c: 12}, {r: 6, c: 13}, {r: 6, c: 14},
+      {r: 7, c: 14},
+      {r: 8, c: 14}, {r: 8, c: 13}, {r: 8, c: 12}, {r: 8, c: 11}, {r: 8, c: 10}, {r: 8, c: 9},
+      {r: 9, c: 8},  {r: 10, c: 8}, {r: 11, c: 8}, {r: 12, c: 8}, {r: 13, c: 8}, {r: 14, c: 8},
+      {r: 14, c: 7},
+      {r: 14, c: 6}, {r: 13, c: 6}, {r: 12, c: 6}, {r: 11, c: 6}, {r: 10, c: 6}, {r: 9, c: 6},
+      {r: 8, c: 5},  {r: 8, c: 4},  {r: 8, c: 3},  {r: 8, c: 2},  {r: 8, c: 1},  {r: 8, c: 0},
+      {r: 7, c: 0}
+    ];
+
+    const START_INDICES = { red: 1, green: 14, yellow: 27, blue: 40 };
+    const SAFE_INDICES = [1, 8, 14, 21, 27, 34, 40, 47];
+
+    const YARDS = {
+      red:    [{r: 2, c: 2}, {r: 2, c: 3}, {r: 3, c: 2}, {r: 3, c: 3}],
+      green:  [{r: 2, c: 11}, {r: 2, c: 12}, {r: 3, c: 11}, {r: 3, c: 12}],
+      yellow: [{r: 11, c: 11}, {r: 11, c: 12}, {r: 12, c: 11}, {r: 12, c: 12}],
+      blue:   [{r: 11, c: 2}, {r: 11, c: 3}, {r: 12, c: 2}, {r: 12, c: 3}]
+    };
+
+    const HOME_PATHS = {
+      red:    [{r: 7, c: 1}, {r: 7, c: 2}, {r: 7, c: 3}, {r: 7, c: 4}, {r: 7, c: 5}],
+      green:  [{r: 1, c: 7}, {r: 2, c: 7}, {r: 3, c: 7}, {r: 4, c: 7}, {r: 5, c: 7}],
+      yellow: [{r: 7, c: 13}, {r: 7, c: 12}, {r: 7, c: 11}, {r: 7, c: 10}, {r: 7, c: 9}],
+      blue:   [{r: 13, c: 7}, {r: 12, c: 7}, {r: 11, c: 7}, {r: 10, c: 7}, {r: 9, c: 7}]
+    };
+
+    const HOME_END = {
+      red: {r: 7, c: 6}, green: {r: 6, c: 7}, yellow: {r: 7, c: 8}, blue: {r: 8, c: 7}
+    };
+
+    const DICE_ROTATIONS = {
+      1: {x: 0, y: 0}, 2: {x: -90, y: 0}, 3: {x: 0, y: -90},
+      4: {x: 0, y: 90}, 5: {x: 90, y: 0}, 6: {x: 180, y: 0}
+    };
+
+    // --- GAME ENGINE STATE VARIABLES ---
+    var playerRoles = { red: 'human', green: 'computer', yellow: 'computer', blue: 'computer' };
+    var playerStakes = { red: 10, green: 30, yellow: 50, blue: 100 };
+    var activePlayers = ['red', 'green', 'yellow', 'blue'];
+    var tokens = { red: [0,0,0,0], green: [0,0,0,0], yellow: [0,0,0,0], blue: [0,0,0,0] };
+    var turnIndex = 0;
+    var diceValue = 0;
+    var gameState = 'waiting-for-roll'; // 'waiting-for-roll', 'waiting-for-move', 'animating', 'game-over'
+    var consecutiveSixes = 0;
+    var eligibleTokens = [];
+    var currentPerspectiveColor = 'red';
+    var winnerDeclared = null;
+    var autoMoveTimer = null;
+    var aiThreadTimer = null;
+    var fullSimulationAutopilot = false; // Tracks if "Full AI Autopilot" toggle is active
+
+    // --- SYSTEM TIMER STATE ---
+    var gameTimerInterval = null;
+    var gameSecondsElapsed = 0;
+
+    /* =====================================================================
+       FIX 1: WEB AUDIO ENGINE
+       The whole app called AudioController.* (body onclick + every game
+       event) but it was never defined, so every interaction threw a
+       ReferenceError. This is a self-contained oscillator-based engine that
+       needs no assets and is unlocked on the first user gesture.
+       ===================================================================== */
+    const AudioController = {
+      ctx: null,
+      ready: false,
+      init() {
+        try {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            this.ctx = new AC();
+          }
+          if (this.ctx.state === 'suspended') this.ctx.resume();
+          this.ready = true;
+        } catch (e) { /* audio unavailable - fail silently */ }
+      },
+      tone(freq, duration, type = 'sine', volume = 0.2, delay = 0) {
+        if (!this.ctx) return;
+        const start = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(volume, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(start);
+        osc.stop(start + duration);
+      },
+      playRoll() {
+        this.init();
+        this.tone(180, 0.07, 'square', 0.18, 0);
+        this.tone(300, 0.07, 'square', 0.15, 0.07);
+        this.tone(460, 0.09, 'square', 0.12, 0.14);
+      },
+      playMove() {
+        this.init();
+        this.tone(520, 0.06, 'sine', 0.14);
+      },
+      playCapture() {
+        this.init();
+        this.tone(200, 0.22, 'sawtooth', 0.22, 0);
+        this.tone(120, 0.30, 'sawtooth', 0.20, 0.10);
+      },
+      playHome() {
+        this.init();
+        [523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.20, 'triangle', 0.18, i * 0.12));
+      }
+    };
+
+    /* =====================================================================
+       FIX 2 & 3: ✨ GEMINI COMMENTATOR + TRASH TALK
+       requestGeminiCommentary() and generateCustomTrashTalk() were called
+       all over the engine but never defined. Missing them broke turn flow
+       (e.g. the "no moves" branch threw before scheduling the pass).
+
+       This implementation works fully OFFLINE with a local Kenyan-sheng
+       commentary generator and the browser's built-in speech synthesis.
+       To upgrade to the real model, paste a key into GEMINI_API_KEY below;
+       the live call is used when present and gracefully falls back on error.
+       ===================================================================== */
+    const GEMINI_API_KEY = ""; // optional: add a Google AI Studio key to go live
+    const GEMINI_MODEL = "gemini-2.0-flash";
+
+    const SHENG = {
+      intro: [
+        "Mambo vipi wadau! Stakes ziko juu — leo ni pesa otas, hakuna mchezo!",
+        "Karibuni kwa meza ya wenye nguvu. Mwenye stake kubwa anabeba pressure, mwenye ndogo anacheza free!",
+        "Tumeanza! Dau limewekwa, sasa ni dice na akili. May the best mjanja win!"
+      ],
+      capture: [
+        "Aiii! Umemrudisha base, amebaki anashangaa kama amepoteza fare ya mat!",
+        "Kichinjio! That capture just shifted the whole pesa equation. Pole sana mwathirika!",
+        "Wameitwa kwa DCI! Token imerudi nyumbani bila ya kupiga hodi. Pure ujanja!"
+      ],
+      nomove: [
+        "Dice imekataa kabisa — hakuna move. Unangoja tu kama mat ya Rongai jioni.",
+        "Zero moves! Hiyo dice imekuangusha kama promised land ya politician.",
+        "Hakuna pa kwenda. Skia tu, panga mawazo, round ingine itakuwa yako."
+      ],
+      victory: [
+        "Game imeisha! Mshindi anabeba mzigo, KRA wanabeba ushuru. Hiyo ndio Kenya yetu!",
+        "Tumemaliza! Winner ametoka na takehome poa, wengine wanalamba stake refund. Heshima!",
+        "Finito! Pesa imehama mfuko. Mshindi anaenda kupiga nyama choma, wengine wanaenda kupanga tena."
+      ],
+      generic: [
+        "Bodi inawaka moto! Kila move ni pesa, kila six ni heartbeat.",
+        "Hii match iko sawa. Endeleeni kupiga dice, taxman ako macho.",
+        "Stakes hizi si za kuchezea — focus, msije lia kwa kona."
+      ],
+      trash: [
+        "Wewe na hizo token zako za base? Acha kuogopa, toa kafala icheze!",
+        "Stake yangu iko juu coz najua nitachukua zote. Mtaniona kwa highlights!",
+        "Mnacheza poa, lakini cheque ya leo inakuja kwangu. Andaeni M-Pesa ya refund!",
+        "Sina haraka — nitawamaliza polepole kama bundles za usiku. Mko down?",
+        "Six ingine tena? Dice inanijua. Nyinyi mko hapo kwa formality tu!"
+      ]
+    };
+
+    function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function setCommentaryText(text) {
+      const el = document.getElementById('gemini-commentary-text');
+      if (el) el.innerText = `"${text}"`;
+    }
+
+    function setAudioStatus(text) {
+      const el = document.getElementById('gemini-audio-status');
+      if (el) el.innerText = text;
+    }
+
+    // Browser speech synthesis = working "voice" with zero dependencies.
+    function speakCommentary(text) {
+      try {
+        if (!('speechSynthesis' in window)) { setAudioStatus('Voice synthesis ready'); return; }
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.02;
+        utter.pitch = 1.05;
+        utter.volume = 1.0;
+        utter.onstart = () => setAudioStatus('🔊 Commentator speaking…');
+        utter.onend = () => setAudioStatus('Voice synthesis ready');
+        utter.onerror = () => setAudioStatus('Voice synthesis ready');
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        setAudioStatus('Voice synthesis ready');
+      }
+    }
+
+    // Offline analyst: choose a flavour bucket from the prompt's keywords.
+    function localCommentary(prompt) {
+      const p = (prompt || '').toLowerCase();
+      if (p.includes('captured') || p.includes('capture')) return pickRandom(SHENG.capture);
+      if (p.includes('won') || p.includes('victory') || p.includes('final')) return pickRandom(SHENG.victory);
+      if (p.includes('no moves') || p.includes('missed')) return pickRandom(SHENG.nomove);
+      if (p.includes('initialized') || p.includes('setup')) return pickRandom(SHENG.intro);
+      return pickRandom(SHENG.generic);
+    }
+
+    async function callGeminiAPI(prompt) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+      const body = {
+        contents: [{
+          parts: [{
+            text: `You are a hype Kenyan sports betting commentator for a Ludo stakes match. ` +
+                  `Reply in ONE short punchy sentence mixing English and Kenyan sheng/slang. Context: ${prompt}`
+          }]
+        }]
+      };
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('Gemini HTTP ' + res.status);
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error('Empty Gemini response');
+      return text.trim();
+    }
+
+    async function requestGeminiCommentary(prompt) {
+      setAudioStatus('✨ Analyzing stakes…');
+      let text;
+      if (GEMINI_API_KEY) {
+        try {
+          text = await callGeminiAPI(prompt);
+        } catch (e) {
+          text = localCommentary(prompt); // graceful fallback keeps the game alive
+        }
+      } else {
+        text = localCommentary(prompt);
+      }
+      setCommentaryText(text);
+      speakCommentary(text);
+    }
+
+    async function generateCustomTrashTalk() {
+      AudioController.init();
+      const activeColor = PLAYERS[turnIndex];
+      const pool = activePlayers.reduce((acc, c) => acc + (playerStakes[c] || 0), 0);
+      const prompt = `Player ${activeColor} is talking trash. The gross pool on the table is KES ${pool}. Deliver one savage but playful trash-talk line.`;
+
+      if (GEMINI_API_KEY) {
+        setAudioStatus('✨ Cooking trash talk…');
+        try {
+          const text = await callGeminiAPI(prompt);
+          setCommentaryText(text);
+          speakCommentary(text);
+          return;
+        } catch (e) { /* fall through to local */ }
+      }
+      const line = pickRandom(SHENG.trash);
+      setCommentaryText(line);
+      speakCommentary(line);
+    }
+
+    // Safe icon renderer (lucide loads from a CDN; never let a miss break the board).
+    function renderIcons() {
+      try { if (window.lucide) lucide.createIcons(); } catch (e) { /* ignore */ }
+    }
+
+    // --- POSITION RESOLUTION FUNCTION (DECLARED BEFORE CALLERS) ---
+    function getTokenCoords(color, tokenIndex, step) {
+      if (step === 0) return YARDS[color][tokenIndex];
+      if (step === 57) return HOME_END[color];
+      if (step >= 52) return HOME_PATHS[color][step - 52];
+      const startIdx = START_INDICES[color];
+      const trackIdx = (startIdx + (step - 1)) % 52;
+      return TRACK_COORDS[trackIdx];
+    }
+
+    // --- BOARD DRAWING & GRID GENERATION ---
+    function initBoard() {
+      const container = document.getElementById('board-container');
+      container.innerHTML = '';
+
+      for (let r = 0; r < 15; r++) {
+        for (let c = 0; c < 15; c++) {
+          const cell = document.createElement('div');
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.className = "relative flex items-center justify-center transition-all duration-200 rounded-sm";
+
+          // Yard Zones & Concentric Ring Backgrounds
+          if (r < 6 && c < 6) {
+            cell.className += " bg-red-100 border border-red-200/50 yard-sketch";
+            if (r === 0 || r === 5 || c === 0 || c === 5) cell.className += " bg-red-200/40";
+          } else if (r < 6 && c >= 9) {
+            cell.className += " bg-emerald-100 border border-emerald-200/50 yard-sketch";
+            if (r === 0 || r === 5 || c === 9 || c === 14) cell.className += " bg-emerald-200/40";
+          } else if (r >= 9 && c >= 9) {
+            cell.className += " bg-yellow-100 border border-yellow-200/50 yard-sketch";
+            if (r === 9 || r === 14 || c === 9 || c === 14) cell.className += " bg-yellow-200/40";
+          } else if (r >= 9 && c < 6) {
+            cell.className += " bg-blue-100 border border-blue-200/50 yard-sketch";
+            if (r === 9 || r === 14 || c === 0 || c === 5) cell.className += " bg-blue-200/40";
+          }
+          // Center Goal Triangles
+          else if (r >= 6 && r <= 8 && c >= 6 && c <= 8) {
+            cell.className += " bg-white border border-slate-300";
+            if (r === 7 && c === 6) cell.className += " bg-red-500/20 border-r-red-400 border-r-2";
+            if (r === 6 && c === 7) cell.className += " bg-emerald-500/20 border-b-emerald-400 border-b-2";
+            if (r === 7 && c === 8) cell.className += " bg-yellow-500/20 border-l-yellow-400 border-l-2";
+            if (r === 8 && c === 7) cell.className += " bg-blue-500/20 border-t-blue-400 border-t-2";
+          }
+          // Main tracks with sketch highlights
+          else {
+            cell.className += " bg-amber-50/50 border border-amber-900/10";
+            if (r === 7 && c >= 1 && c <= 5) cell.className += " bg-red-500/20";
+
+            // Draw actual direction indicators exactly matching the screenshot
+            if (r === 6 && c === 1) {
+              cell.className += " bg-red-500/10";
+              cell.innerHTML = '<span class="text-xs font-bold text-red-700 opacity-60">→</span>';
+            }
+            if (c === 7 && r >= 1 && r <= 5) cell.className += " bg-emerald-500/20";
+            if (r === 1 && c === 8) {
+              cell.className += " bg-emerald-500/10";
+              cell.innerHTML = '<span class="text-xs font-bold text-emerald-700 opacity-60">↓</span>';
+            }
+            if (r === 7 && c >= 9 && c <= 13) cell.className += " bg-yellow-500/20";
+            if (r === 8 && c === 13) {
+              cell.className += " bg-yellow-500/10";
+              cell.innerHTML = '<span class="text-xs font-bold text-yellow-700 opacity-60">←</span>';
+            }
+            if (c === 7 && r >= 9 && r <= 13) cell.className += " bg-blue-500/20";
+            if (r === 13 && c === 6) {
+              cell.className += " bg-blue-500/10";
+              cell.innerHTML = '<span class="text-xs font-bold text-blue-700 opacity-60">↑</span>';
+            }
+
+            // Safe star icons
+            const isStar = (r === 3 && c === 6) || (r === 6 && c === 11) || (r === 11 && c === 8) || (r === 8 && c === 3);
+            const isStart = (r === 6 && c === 1) || (r === 1 && c === 8) || (r === 8 && c === 13) || (r === 13 && c === 6);
+            if (isStar || isStart) {
+              cell.innerHTML = `<i data-lucide="star" class="w-3.5 h-3.5 text-amber-800/40"></i>`;
+            }
+          }
+          container.appendChild(cell);
+        }
+      }
+      renderIcons();
+    }
+
+    // --- RE-CALCULATE POOL & RE-RENDER ---
+    function recalculateMatchLobby() {
+      PLAYERS.forEach(color => {
+        const val = parseFloat(document.getElementById(`stake-${color}`).value) || 10;
+        playerStakes[color] = val;
+      });
+
+      const totalActiveStakes = activePlayers.reduce((acc, c) => acc + playerStakes[c], 0);
+      document.getElementById('gross-pool-display').innerText = `Gross Match Stakes: KES ${totalActiveStakes.toFixed(2)}`;
+
+      renderPerspectiveScreen();
+    }
+
+    // --- RE-RENDER PIECES & DYNAMIC STACKING ---
+    function updateBoardPieces() {
+      document.querySelectorAll('.token-chip').forEach(el => el.remove());
+      const placementMap = {};
+
+      PLAYERS.forEach(color => {
+        if (!activePlayers.includes(color)) return;
+        tokens[color].forEach((step, tokenIdx) => {
+          const coords = getTokenCoords(color, tokenIdx, step);
+          const key = `${coords.r}_${coords.c}`;
+          if (!placementMap[key]) placementMap[key] = [];
+          placementMap[key].push({ color, index: tokenIdx, step });
+        });
+      });
+
+      Object.keys(placementMap).forEach(key => {
+        const [r, c] = key.split('_').map(Number);
+        const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+        if (!cell) return;
+
+        const tokenList = placementMap[key];
+        const count = tokenList.length;
+
+        const container = document.createElement('div');
+        container.className = `token-chip absolute inset-0 flex flex-wrap items-center justify-center p-[2px] gap-[1px] z-10`;
+
+        tokenList.forEach(tokenObj => {
+          const chip = document.createElement('button');
+          let sizeClass = 'w-6 h-6';
+          if (count > 1) sizeClass = 'w-4 h-4';
+          if (count > 3) sizeClass = 'w-3.5 h-3.5';
+
+          const style = PLAYER_STYLES[tokenObj.color];
+          // Style tokens as thick wooden circles matching classic game boards
+          chip.className = `rounded-full ${style.bg} border-2 border-stone-900/60 shadow-md transition-all duration-300 transform relative flex items-center justify-center wooden-pawn ${sizeClass}`;
+
+          const isTurn = PLAYERS[turnIndex] === tokenObj.color;
+          const isEligible = eligibleTokens.includes(tokenObj.index);
+          const isHuman = playerRoles[tokenObj.color] === 'human' && !fullSimulationAutopilot;
+
+          if (isTurn && isEligible && isHuman && gameState === 'waiting-for-move') {
+            chip.className += ` cursor-pointer scale-110 animate-bounce ring-2 ring-indigo-400 z-20`;
+            chip.onclick = (e) => {
+              e.stopPropagation();
+              makeMove(tokenObj.index);
+            };
+          } else {
+            chip.style.pointerEvents = 'none';
+          }
+
+          const label = document.createElement('span');
+          label.className = 'text-[7px] font-extrabold text-stone-100 pointer-events-none select-none';
+          label.innerText = tokenObj.index + 1;
+          chip.appendChild(label);
+
+          container.appendChild(chip);
+        });
+        cell.appendChild(container);
+      });
+
+      renderPerspectiveScreen();
+    }
+
+    // --- PERSPECTIVE PORT ENGINE ---
+    function switchScreenPerspective(color) {
+      currentPerspectiveColor = color;
+
+      PLAYERS.forEach(c => {
+        const tab = document.getElementById(`tab-${c}`);
+        if (!tab) return;
+        if (c === color) {
+          tab.className = `px-2 py-1.5 rounded-lg text-[10px] font-bold border-2 bg-stone-800 transition-all`;
+          tab.style.borderColor = PLAYER_STYLES[c].hex;
+          tab.style.color = PLAYER_STYLES[c].hex;
+        } else {
+          tab.className = `px-2 py-1.5 rounded-lg text-[10px] font-bold border border-stone-800 bg-stone-950 text-stone-400 transition-all`;
+          tab.style.borderColor = '';
+          tab.style.color = '';
+        }
+      });
+
+      renderPerspectiveScreen();
+    }
+
+    function renderPerspectiveScreen() {
+      const screen = document.getElementById('perspective-screen');
+      if (!screen) return;
+      const pColor = currentPerspectiveColor;
+      const myStake = playerStakes[pColor];
+
+      const lobbyDetails = PLAYERS.map(c => {
+        const style = PLAYER_STYLES[c];
+        const prefix = c === pColor ? '(Me)' : '';
+        return `<span class="${style.text} font-bold">${style.name}${prefix}: KES ${playerStakes[c]}</span>`;
+      }).join(' | ');
+
+      let activeMatchedPoolIfIWin = 0;
+      PLAYERS.forEach(other => {
+        if (other === pColor) return;
+        activeMatchedPoolIfIWin += Math.min(myStake, playerStakes[other]);
+      });
+      activeMatchedPoolIfIWin += myStake; // include own staked amount in the pot
+
+      const comIfIWin = activeMatchedPoolIfIWin * 0.10;
+      const exciseIfIWin = activeMatchedPoolIfIWin * 0.125;
+      const netPoolIfIWin = activeMatchedPoolIfIWin - comIfIWin - exciseIfIWin;
+      const taxableIfIWin = Math.max(0, netPoolIfIWin - myStake);
+      const whtIfIWin = taxableIfIWin * 0.20;
+      const takeHomeIfIWin = netPoolIfIWin - whtIfIWin;
+
+      let htmlContent = `
+        <div class="flex justify-between text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-2">
+          <span>Screen perspective: ${PLAYER_STYLES[pColor].name}</span>
+          <span>KES ${myStake.toFixed(2)} Stake</span>
+        </div>
+        <div class="bg-stone-900 p-2.5 rounded-lg border border-stone-800 flex flex-wrap gap-2 text-[10px] mb-3 justify-center">
+          ${lobbyDetails}
+        </div>
+
+        <div class="bg-stone-900 p-3 rounded-lg border border-stone-800 space-y-1.5 text-xs">
+          <span class="text-[9px] font-extrabold text-stone-500 block uppercase tracking-wider">Dynamic Payout Matrix</span>
+          <div class="flex justify-between">
+            <span class="text-stone-400">Gross Pool Matched:</span>
+            <span class="font-bold text-stone-100">KES ${activeMatchedPoolIfIWin.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between text-emerald-400 font-extrabold">
+            <span>Take-home if you Win 1st:</span>
+            <span>KES ${takeHomeIfIWin.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between text-stone-400">
+            <span>Safety-Net on 2nd Place:</span>
+            <span>KES ${(myStake * 0.90).toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+
+      if (winnerDeclared) {
+        const isMeWinner = winnerDeclared === pColor;
+
+        if (isMeWinner) {
+          htmlContent += `
+            <div class="bg-emerald-950/40 p-3 rounded-lg border border-emerald-800 mt-3 text-xs space-y-1">
+              <strong class="text-emerald-400 block text-sm">🏆 You Won 1st Place!</strong>
+              <div class="flex justify-between text-stone-400"><span>10% Platform Fee:</span><span>-KES ${comIfIWin.toFixed(2)}</span></div>
+              <div class="flex justify-between text-stone-400"><span>12.5% KRA Excise Duty:</span><span>-KES ${exciseIfIWin.toFixed(2)}</span></div>
+              <div class="flex justify-between text-stone-400"><span>20% Withholding Tax:</span><span>-KES ${whtIfIWin.toFixed(2)}</span></div>
+              <div class="flex justify-between text-emerald-300 font-black pt-1 border-t border-emerald-800/50 mt-1">
+                <span>Deposited via M-Pesa:</span>
+                <span>KES ${takeHomeIfIWin.toFixed(2)}</span>
+              </div>
+            </div>
+          `;
+        } else {
+          const winStake = playerStakes[winnerDeclared];
+          const lostToWinner = Math.min(winStake, myStake);
+          const refund = myStake - lostToWinner;
+
+          htmlContent += `
+            <div class="bg-rose-950/40 p-3 rounded-lg border border-rose-900 mt-3 text-xs space-y-1">
+              <strong class="text-rose-400 block text-sm">❌ Match Lost</strong>
+              <div class="flex justify-between text-stone-400"><span>Winner:</span><span>${PLAYER_STYLES[winnerDeclared].name}</span></div>
+              <div class="flex justify-between text-stone-400"><span>Amount Risk Matched:</span><span>-KES ${lostToWinner.toFixed(2)}</span></div>
+              <div class="flex justify-between text-sky-400 font-bold pt-1 border-t border-rose-900/50 mt-1">
+                <span>Refunded to Wallet:</span>
+                <span>+KES ${refund.toFixed(2)}</span>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      screen.innerHTML = htmlContent;
+    }
+
+    // --- STOPWATCH ---
+    function startTimer() {
+      clearInterval(gameTimerInterval);
+      gameSecondsElapsed = 0;
+      gameTimerInterval = setInterval(() => {
+        gameSecondsElapsed++;
+        const mins = Math.floor(gameSecondsElapsed / 60).toString().padStart(2, '0');
+        const secs = (gameSecondsElapsed % 60).toString().padStart(2, '0');
+        document.getElementById('game-timer').innerText = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    // --- GAME ENGINE FLOW ---
+    function logMessage(text, colorClass = 'text-stone-300') {
+      const container = document.getElementById('log-container');
+      container.innerHTML += `<div class="py-0.5 border-b border-stone-900 ${colorClass}">${text}</div>`;
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function toggleSetupModal(show) {
+      const modal = document.getElementById('setup-modal');
+      if (show) modal.classList.remove('hidden');
+      else modal.classList.add('hidden');
+    }
+
+    function toggleGameOverModal(show, winnerColor = '') {
+      const modal = document.getElementById('gameover-modal');
+      if (show) {
+        clearInterval(gameTimerInterval);
+        winnerDeclared = winnerColor;
+        document.getElementById('winner-announcement').innerText = `${PLAYER_STYLES[winnerColor].name} team won 1st Place!`;
+
+        const winStake = playerStakes[winnerColor];
+        let activePool = winStake;
+        PLAYERS.forEach(other => {
+          if (other === winnerColor) return;
+          activePool += Math.min(winStake, playerStakes[other]);
+        });
+
+        const com = activePool * 0.10;
+        const exc = activePool * 0.125;
+        const netW = activePool - com - exc;
+        const taxW = Math.max(0, netW - winStake);
+        const wht = taxW * 0.20;
+        const takeHome = netW - wht;
+
+        document.getElementById('payout-announcement').innerText = `Winner Payout: KES ${takeHome.toFixed(2)} | KRA Taxes Withheld: KES ${(exc + wht).toFixed(2)}`;
+        modal.classList.remove('hidden');
+
+        document.querySelectorAll('.stake-input').forEach(input => input.disabled = false);
+        renderPerspectiveScreen();
+
+        // Send victory state context to the commentator
+        requestGeminiCommentary(`Analyze this final match result: ${PLAYER_STYLES[winnerColor].name} won the match with a stake of KES ${winStake}. The gross pool was KES ${activePool}. Payout was KES ${takeHome}. Deliver a final victory statement.`);
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function startGame() {
+      clearTimeout(autoMoveTimer);
+      clearTimeout(aiThreadTimer);
+      AudioController.init();
+
+      activePlayers = [];
+      PLAYERS.forEach(color => {
+        const val = document.getElementById(`role-${color}`).value;
+        playerRoles[color] = val;
+        if (val !== 'disabled') activePlayers.push(color);
+      });
+
+      if (activePlayers.length < 2) {
+        alert('Select at least 2 active players to initiate.');
+        return;
+      }
+
+      document.querySelectorAll('.stake-input').forEach(input => input.disabled = true);
+
+      tokens = { red:[0,0,0,0], green:[0,0,0,0], yellow:[0,0,0,0], blue:[0,0,0,0] };
+      turnIndex = PLAYERS.indexOf(activePlayers[0]);
+      gameState = 'waiting-for-roll';
+      consecutiveSixes = 0;
+      eligibleTokens = [];
+      winnerDeclared = null;
+
+      // Make sure the perspective tab points at an active player.
+      if (!activePlayers.includes(currentPerspectiveColor)) {
+        switchScreenPerspective(activePlayers[0]);
+      }
+
+      toggleSetupModal(false);
+      initBoard();
+      recalculateMatchLobby();
+      startTimer();
+      document.getElementById('log-container').innerHTML = '';
+      logMessage('🍀 P2P Match successfully initialized!', 'text-indigo-400 font-bold');
+
+      updateTurnIndicator();
+      updateBoardPieces();
+      checkComputerAutoplay();
+
+      // Notify the commentator of match setup
+      requestGeminiCommentary(`Ludo match initialized. Active player stakes: Red: KES ${playerStakes.red}, Green: KES ${playerStakes.green}, Yellow: KES ${playerStakes.yellow}, Blue: KES ${playerStakes.blue}. Highlight the highest and lowest stakes.`);
+    }
+
+    // Autopilot state handler
+    function toggleAutopilotMode(toggleElement) {
+      fullSimulationAutopilot = toggleElement.checked;
+      logMessage(`🤖 AI Autopilot Simulator toggled ${fullSimulationAutopilot ? 'ON' : 'OFF'}.`, 'text-amber-400 font-bold');
+      updateTurnIndicator();
+      updateBoardPieces();
+      checkComputerAutoplay();
+    }
+
+    function updateTurnIndicator() {
+      const activeColor = PLAYERS[turnIndex];
+      const style = PLAYER_STYLES[activeColor];
+
+      const badge = document.getElementById('turn-badge');
+      badge.className = `w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${style.bg}`;
+      document.getElementById('turn-initial').innerText = activeColor.charAt(0).toUpperCase();
+
+      const nameEl = document.getElementById('turn-name');
+      nameEl.innerText = `${style.name}'s Turn`;
+      nameEl.className = `text-xs font-black truncate ${style.text}`;
+
+      const typeBadge = document.getElementById('turn-type-badge');
+      const isComputer = playerRoles[activeColor] === 'computer' || fullSimulationAutopilot;
+      typeBadge.innerText = isComputer ? 'Computer AI' : 'Human';
+
+      const glow = document.getElementById('player-glow');
+      glow.style.backgroundColor = style.hex;
+
+      const rollBtn = document.getElementById('roll-btn');
+      if (isComputer || gameState !== 'waiting-for-roll') {
+        rollBtn.disabled = true;
+        rollBtn.className = "bg-stone-800 text-stone-500 text-xs py-2 px-3 rounded-lg font-bold cursor-not-allowed border border-stone-700 flex items-center gap-1";
+        document.getElementById('roll-prompt').innerText = isComputer ? 'AI thinking...' : 'Pick Piece';
+      } else {
+        rollBtn.disabled = false;
+        rollBtn.className = `bg-amber-600 hover:bg-amber-500 text-stone-950 font-extrabold text-xs py-2 px-3 rounded-lg flex items-center gap-1 active:scale-95 transition-all cursor-pointer`;
+        document.getElementById('roll-prompt').innerText = 'ROLL!';
+      }
+    }
+
+    function handleDiceClick() {
+      AudioController.init();
+      const activeColor = PLAYERS[turnIndex];
+      const isHuman = playerRoles[activeColor] === 'human' && !fullSimulationAutopilot;
+      if (gameState === 'waiting-for-roll' && isHuman) {
+        rollDice();
+      }
+    }
+
+    function rollDice() {
+      if (gameState !== 'waiting-for-roll') return;
+
+      AudioController.playRoll();
+      const cube = document.getElementById('cube');
+      diceValue = Math.floor(Math.random() * 6) + 1;
+
+      const rotations = DICE_ROTATIONS[diceValue];
+      const extraX = (Math.floor(Math.random() * 2) + 2) * 360;
+      const extraY = (Math.floor(Math.random() * 2) + 2) * 360;
+
+      cube.style.transform = `rotateX(${rotations.x + extraX}deg) rotateY(${rotations.y + extraY}deg)`;
+
+      const activeColor = PLAYERS[turnIndex];
+      const style = PLAYER_STYLES[activeColor];
+
+      logMessage(`${style.name} rolled a 🎲 ${diceValue}`, style.text);
+
+      if (diceValue === 6) {
+        consecutiveSixes++;
+        if (consecutiveSixes === 3) {
+          logMessage(`⚠️ 3 consecutive sixes! Turn passed!`, 'text-rose-400');
+          consecutiveSixes = 0;
+          nextTurn();
+          return;
+        }
+      } else {
+        consecutiveSixes = 0;
+      }
+
+      evaluateMoves();
+    }
+
+    // --- RULES EVALUATION ---
+    function evaluateMoves() {
+      const activeColor = PLAYERS[turnIndex];
+      const moves = [];
+
+      tokens[activeColor].forEach((step, idx) => {
+        if (step === 0) {
+          if (diceValue === 6) moves.push(idx);
+        } else if (step + diceValue <= 57) {
+          moves.push(idx);
+        }
+      });
+
+      eligibleTokens = moves;
+
+      if (eligibleTokens.length === 0) {
+        logMessage(`No moves possible for ${PLAYER_STYLES[activeColor].name}. Passing turn.`, 'text-stone-400');
+
+        // Notify the commentator of the locked turn state
+        requestGeminiCommentary(`Player ${activeColor} with stake KES ${playerStakes[activeColor]} rolled a ${diceValue} but has no moves available. Narrate the missed chance.`);
+
+        autoMoveTimer = setTimeout(() => {
+          if (diceValue === 6) {
+            gameState = 'waiting-for-roll';
+            updateTurnIndicator();
+            checkComputerAutoplay();
+          } else {
+            nextTurn();
+          }
+        }, 1200);
+      } else {
+        gameState = 'waiting-for-move';
+        updateTurnIndicator();
+        updateBoardPieces();
+
+        const isHuman = playerRoles[activeColor] === 'human' && !fullSimulationAutopilot;
+
+        // Automatic Auto-Move if only 1 choice is available
+        if (eligibleTokens.length === 1) {
+          const onlyMoveIndex = eligibleTokens[0];
+          logMessage(`⚡ Auto-moving piece ${onlyMoveIndex + 1} (Only valid move!)`, 'text-indigo-400 text-[10px]');
+          autoMoveTimer = setTimeout(() => {
+            makeMove(onlyMoveIndex);
+          }, 800);
+        } else if (!isHuman) {
+          aiThreadTimer = setTimeout(makeComputerChoice, 1000);
+        }
+      }
+    }
+
+    // --- SMART COMPUTER AI ---
+    function makeComputerChoice() {
+      const activeColor = PLAYERS[turnIndex];
+      if (gameState !== 'waiting-for-move') return;
+
+      let bestTokenIndex = eligibleTokens[0];
+      let maxScore = -9999;
+
+      eligibleTokens.forEach(idx => {
+        let score = 0;
+        const currentStep = tokens[activeColor][idx];
+        const nextStep = currentStep === 0 ? 1 : currentStep + diceValue;
+
+        if (nextStep === 57) score += 1500;
+
+        const nextCoords = getTokenCoords(activeColor, idx, nextStep);
+        let capturePotential = false;
+
+        PLAYERS.forEach(opp => {
+          if (opp === activeColor) return;
+          tokens[opp].forEach((oppStep, oppIdx) => {
+            if (oppStep > 0 && oppStep < 57) {
+              const oppCoords = getTokenCoords(opp, oppIdx, oppStep);
+              if (oppCoords.r === nextCoords.r && oppCoords.c === nextCoords.c) {
+                const globalTrackIndex = (START_INDICES[activeColor] + (nextStep - 1)) % 52;
+                if (nextStep < 52 && !SAFE_INDICES.includes(globalTrackIndex)) {
+                  capturePotential = true;
+                }
+              }
+            }
+          });
+        });
+
+        if (capturePotential) score += 2000;
+        if (currentStep === 0 && diceValue === 6) score += 800;
+        score += nextStep * 1.5;
+        score += Math.random() * 5;
+
+        if (score > maxScore) {
+          maxScore = score;
+          bestTokenIndex = idx;
+        }
+      });
+
+      makeMove(bestTokenIndex);
+    }
+
+    // --- PIECE HOP MOVEMENT ---
+    function makeMove(tokenIdx) {
+      if (gameState !== 'waiting-for-move') return;
+      const activeColor = PLAYERS[turnIndex];
+      const startStep = tokens[activeColor][tokenIdx];
+      const endStep = startStep === 0 ? 1 : startStep + diceValue;
+
+      gameState = 'animating';
+      eligibleTokens = [];
+      updateTurnIndicator();
+
+      let stepCounter = startStep;
+
+      function hopStep() {
+        if (stepCounter < endStep) {
+          stepCounter = stepCounter === 0 ? 1 : stepCounter + 1;
+          tokens[activeColor][tokenIdx] = stepCounter;
+
+          AudioController.playMove();
+          updateBoardPieces();
+          setTimeout(hopStep, 150);
+        } else {
+          concludeMovement(tokenIdx, endStep);
+        }
+      }
+
+      hopStep();
+    }
+
+    // --- POST-MOVEMENT LOGIC ---
+    function concludeMovement(tokenIdx, finalStep) {
+      const activeColor = PLAYERS[turnIndex];
+
+      if (finalStep === 57) {
+        AudioController.playHome();
+        logMessage(`🎉 Piece ${tokenIdx + 1} reached Home!`, 'text-indigo-400');
+
+        const isWinner = tokens[activeColor].every(step => step === 57);
+        if (isWinner) {
+          toggleGameOverModal(true, activeColor);
+          gameState = 'game-over';
+          return;
+        }
+      }
+
+      let extraTurn = false;
+      if (finalStep > 0 && finalStep < 52) {
+        const finalCoords = getTokenCoords(activeColor, tokenIdx, finalStep);
+        const globalTrackIndex = (START_INDICES[activeColor] + (finalStep - 1)) % 52;
+
+        if (!SAFE_INDICES.includes(globalTrackIndex)) {
+          PLAYERS.forEach(opp => {
+            if (opp === activeColor) return;
+            tokens[opp].forEach((oppStep, oppIdx) => {
+              if (oppStep > 0 && oppStep < 57) {
+                const oppCoords = getTokenCoords(opp, oppIdx, oppStep);
+                if (oppCoords.r === finalCoords.r && oppCoords.c === finalCoords.c) {
+                  tokens[opp][oppIdx] = 0;
+                  extraTurn = true;
+                  AudioController.playCapture();
+                  logMessage("⚔️ Captured " + PLAYER_STYLES[opp].name + " piece!", 'text-rose-400 font-bold');
+
+                  // Invoke the commentator on capture event
+                  requestGeminiCommentary(`Player ${activeColor} (Staked KES ${playerStakes[activeColor]}) has captured Player ${opp} (Staked KES ${playerStakes[opp]}) sending them back to base. Deliver an exciting commentary.`);
+                }
+              }
+            });
+          });
+        }
+      }
+
+      if (diceValue === 6 || extraTurn) {
+        gameState = 'waiting-for-roll';
+        updateTurnIndicator();
+        updateBoardPieces();
+        checkComputerAutoplay();
+      } else {
+        nextTurn();
+      }
+    }
+
+    function nextTurn() {
+      let i = activePlayers.indexOf(PLAYERS[turnIndex]);
+      i = (i + 1) % activePlayers.length;
+      turnIndex = PLAYERS.indexOf(activePlayers[i]);
+
+      consecutiveSixes = 0;
+      gameState = 'waiting-for-roll';
+
+      updateTurnIndicator();
+      updateBoardPieces();
+      checkComputerAutoplay();
+    }
+
+    function checkComputerAutoplay() {
+      if (gameState === 'game-over') return;
+      const activeColor = PLAYERS[turnIndex];
+      const isComputer = playerRoles[activeColor] === 'computer' || fullSimulationAutopilot;
+      if (isComputer && gameState === 'waiting-for-roll') {
+        aiThreadTimer = setTimeout(rollDice, 1100);
+      }
+    }
+
+    window.onload = () => {
+      initBoard();
+      switchScreenPerspective('red');
+      toggleSetupModal(true);
+    };
+  </script>
+</body>
+</html>
