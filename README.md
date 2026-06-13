@@ -17,35 +17,37 @@ a smart computer opponent, a per-player "phone screen" simulator, and a
 - **Android APK:** download the latest `lucky-ludo.apk` from the repo
   **Releases** page and install it on your phone (see *📱 Android APK* below).
 
-## 📱 Android APK
+## 📱 Android app (native Flutter)
 
-The game ships as an installable Android app — a thin native **WebView** shell
-(in `android/`) around the same `index.html`, so the web and app versions never
-drift. The **Build Android APK** workflow (`.github/workflows/android.yml`)
-compiles a debug APK and attaches it to a GitHub Release.
+The phone app is a **native Flutter** build (in `flutter_app/`) that renders the
+classic **wooden board** — circular crayon-fill corner yards, wood-plank
+background, colored home-arrows, a pinwheel centre and wooden pawns — entirely
+with a `CustomPainter` (no images, fully offline). It ports the full game:
+4-player rules, the scoring AI, pass-and-play, dice, wallets, Play/Simulate and
+mute.
 
-The app is **fully offline**: Tailwind and the icon set are vendored under
-`vendor/` and bundled into both the web build and the APK, and all gameplay
-(human-vs-human pass-and-play, human-vs-AI, the commentator and sounds) runs
-on-device with no network. Play against the computer or against each other on
-the same phone — set each colour's role in the Match Lobby.
+- `flutter_app/lib/ludo_game.dart` — board model, rules, AI, wallets, commentary.
+- `flutter_app/lib/board_painter.dart` — the wooden board + pawns renderer.
+- `flutter_app/lib/main.dart` — wooden UI: toolbar, board, dice, controls.
+
+Only `lib/` and `pubspec.yaml` are committed; CI runs `flutter create` to
+generate the Android platform files, then `flutter build apk`.
 
 **Get the APK on your phone:**
 
 1. Open the repo **Releases** page → latest **Lucky Ludo APK** release.
 2. Download `lucky-ludo.apk` and tap it; allow installing from this source if
-   prompted. (It's a debug build signed with the standard Android debug key.)
+   prompted. (Debug-signed release build.)
 
-**Builds happen automatically** whenever `index.html` or anything under
-`android/` changes on `main`; the APK is (re)published to the fixed
-`apk-latest` Release at:
+**Builds happen automatically** whenever anything under `flutter_app/` changes
+on `main`; the APK is (re)published to the fixed `apk-latest` Release at:
 `https://github.com/richardruoro/Lucky-Ludo/releases/latest`
 
-You can also build on demand from the Actions tab → **Build Android APK** →
+You can also build on demand from the Actions tab → **Build Flutter APK** →
 **Run workflow**.
 
-> Works with no connection at all — Tailwind and icons are vendored under
-> `vendor/` and bundled into the APK.
+> The browser version (`index.html`, deployed to GitHub Pages) is still here and
+> still works; the Flutter app is the native phone build.
 
 ## 🎮 How to play
 
