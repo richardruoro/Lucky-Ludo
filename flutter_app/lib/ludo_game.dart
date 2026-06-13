@@ -3,10 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Turn / colour order (matches the original web build).
+/// Turn / colour order.
 const List<String> kPlayers = ['red', 'green', 'yellow', 'blue'];
 
-/// Vivid crayon-ish palette to echo the wooden-board screenshot.
 const Map<String, Color> kColors = {
   'red': Color(0xFFCB3A2A),
   'green': Color(0xFF4E9D33),
@@ -72,7 +71,7 @@ List<int> tokenCell(String color, int tokenIndex, int step) {
   return kTrack[trackIdx];
 }
 
-/// Offline Kenyan-sheng commentary buckets (ported from the web build).
+/// Offline Kenyan-sheng commentary buckets.
 class _Sheng {
   static final intro = [
     'Mambo vipi wadau! Stakes ziko juu — leo ni pesa otas!',
@@ -85,26 +84,16 @@ class _Sheng {
     'Token imerudi nyumbani bila kupiga hodi. Pure ujanja!',
   ];
   static final nomove = [
-    'Dice imekataa kabisa — hakuna move. Unangoja tu.',
+    'Dice imekataa kabisa — hakuna move.',
     'Zero moves! Hiyo dice imekuangusha leo.',
-    'Hakuna pa kwenda. Panga mawazo, round ingine itakuwa yako.',
-  ];
-  static final victory = [
-    'Game imeisha! Mshindi anabeba mzigo, KRA wanabeba ushuru!',
-    'Tumemaliza! Winner ametoka na takehome poa. Heshima!',
-    'Finito! Pesa imehama mfuko. Mshindi aende kupiga nyama choma.',
-  ];
-  static final generic = [
-    'Bodi inawaka moto! Kila move ni pesa.',
-    'Hii match iko sawa. Endeleeni kupiga dice, taxman ako macho.',
-    'Stakes hizi si za kuchezea — focus, msije lia kwa kona.',
+    'Hakuna pa kwenda. Round ingine itakuwa yako.',
   ];
   static final trash = [
-    'Wewe na hizo token za base? Acha kuogopa, toa kafala icheze!',
+    'Wewe na hizo token za base? Toa kafala icheze!',
     'Stake yangu iko juu coz najua nitachukua zote!',
-    'Mnacheza poa, lakini cheque ya leo inakuja kwangu.',
-    'Sina haraka — nitawamaliza polepole kama bundles za usiku.',
-    'Six ingine tena? Dice inanijua. Mko hapo kwa formality tu!',
+    'Cheque ya leo inakuja kwangu. Andaeni M-Pesa!',
+    'Nitawamaliza polepole kama bundles za usiku.',
+    'Six ingine tena? Dice inanijua!',
   ];
 }
 
@@ -128,7 +117,7 @@ class LudoGame extends ChangeNotifier {
   };
   int turnIndex = 0;
   int dice = 1;
-  bool rolling = false;
+  int rollCount = 0; // bumps on every roll so the dice widget can animate.
   String phase = 'idle'; // idle | waiting-for-roll | waiting-for-move | animating | game-over
   int _sixes = 0;
   List<int> eligible = [];
@@ -136,8 +125,12 @@ class LudoGame extends ChangeNotifier {
   bool fullSim = false; // every seat AI (Simulate)
   bool simMode = false; // turbo, no sound
   bool muted = false;
-  String commentary = 'Karibuni! Press Play to take Red, or Simulate to watch.';
+  String commentary = 'Karibuni! Set your stakes, then Play or Simulate.';
   final List<String> log = [];
+
+  // Match-result ledger (filled in at settlement).
+  double lastPool = 0;
+  Map<String, double> settleDelta = {};
 
   Timer? _aiTimer;
   Timer? _moveTimer;
@@ -146,12 +139,13 @@ class LudoGame extends ChangeNotifier {
   bool get isHumanTurn => roles[current] == 'human' && !fullSim;
   bool get started => phase != 'idle';
 
-  int _spd(int ms) => simMode ? 6 : ms;
+  /// Total pot = sum of every active player's committed stake.
+  int get totalPool => active.fold(0, (sum, c) => sum + stakes[c]!);
 
-  void _sound(SystemSoundType s) {
-    if (muted || simMode) return;
-    SystemSound.play(s);
-  }
+  /// Stakes can be edited before a match or after a result — never mid-game.
+  bool get canEditStakes => phase == 'idle' || phase == 'game-over';
+
+  int _spd(int ms) => simMode ? 6 : ms;
 
   void _log(String m) {
     log.add(m);
@@ -169,6 +163,13 @@ class LudoGame extends ChangeNotifier {
 
   void trashTalk() {
     _say(_Sheng.trash);
+    notifyListeners();
+  }
+
+  /// + / - stake controls from the wallet cards.
+  void adjustStake(String color, int delta) {
+    if (!canEditStakes) return;
+    stakes[color] = (stakes[color]! + delta).clamp(1, 100000);
     notifyListeners();
   }
 
@@ -200,37 +201,69 @@ class LudoGame extends ChangeNotifier {
     _sixes = 0;
     eligible = [];
     winner = null;
+    settleDelta = {};
+    lastPool = 0;
     phase = 'waiting-for-roll';
     log.clear();
-    _log('Match initialised');
-    _log(simulate ? 'Turbo simulation — rushing the match' : 'Play mode — your move, boss');
+    _log('Match initialised · pool KES $totalPool');
     _say(_Sheng.intro);
     notifyListeners();
     _maybeAutoplay();
   }
 
-  void handleDiceTap() {
-    if (phase == 'waiting-for-roll' && isHumanTurn) rollDice();
+  // ---- ANIMATION / FEEDBACK ----
+
+  /// Audio + haptic feedback whose intensity scales with the fling velocity.
+  /// SystemSound has no pitch control without an audio plugin, so we APPROXIMATE
+  /// a louder/faster rattle by firing more click "ticks" the harder the fling.
+  void _rollFeedback(double velocity) {
+    if (simMode) return;
+    if (!muted) {
+      // 3 ticks for a soft tap, up to ~12 for a hard fling, spaced 40ms apart.
+      final ticks = (3 + (velocity / 300).clamp(0, 9)).round();
+      for (var i = 0; i < ticks; i++) {
+        Timer(Duration(milliseconds: i * 40), () {
+          if (!muted) SystemSound.play(SystemSoundType.click);
+        });
+      }
+    }
+    // Vibration strength tiers based on the swipe speed (px/sec).
+    if (velocity > 1800) {
+      HapticFeedback.heavyImpact();
+    } else if (velocity > 800) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.selectionClick();
+    }
   }
 
-  void rollDice() {
+  /// Called by the dice widget after a fling; [velocity] is the swipe speed.
+  void flingRoll(double velocity) {
+    if (phase == 'waiting-for-roll' && isHumanTurn) rollDice(velocity: velocity);
+  }
+
+  void rollDice({double velocity = 0}) {
     if (phase != 'waiting-for-roll') return;
     dice = _rng.nextInt(6) + 1;
-    _sound(SystemSoundType.click);
-    _log('${kNames[current]} rolled $dice');
+    rollCount++;
+    _rollFeedback(velocity);
 
     if (dice == 6) {
       _sixes++;
       if (_sixes == 3) {
+        commentary = '${kNames[current]} threw three sixes — turn forfeited!';
         _log('Three sixes — turn forfeited');
         _sixes = 0;
         _nextTurn();
         notifyListeners();
         return;
       }
+      commentary = '${kNames[current]} flung a 6! Roll again.';
     } else {
       _sixes = 0;
+      commentary = '${kNames[current]} flung a $dice.';
     }
+    _log('${kNames[current]} rolled $dice');
     _evaluate();
     notifyListeners();
   }
@@ -271,6 +304,8 @@ class LudoGame extends ChangeNotifier {
       _aiTimer = Timer(Duration(milliseconds: _spd(700)), () => move(only));
     } else if (!isHumanTurn) {
       _aiTimer = Timer(Duration(milliseconds: _spd(800)), _aiChoose);
+    } else {
+      commentary = '${kNames[color]}: tap a glowing piece to move.';
     }
   }
 
@@ -335,7 +370,7 @@ class LudoGame extends ChangeNotifier {
       if (step < end) {
         step = step == 0 ? 1 : step + 1;
         tokens[color]![idx] = step;
-        _sound(SystemSoundType.click);
+        if (!muted) SystemSound.play(SystemSoundType.click);
         notifyListeners();
         _moveTimer = Timer(const Duration(milliseconds: 140), hop);
       } else {
@@ -371,8 +406,8 @@ class LudoGame extends ChangeNotifier {
               if (oc[0] == fc[0] && oc[1] == fc[1]) {
                 os[oi] = 0;
                 extra = true;
-                _sound(SystemSoundType.alert);
-                _log('Captured ${kNames[opp]} piece!');
+                if (!muted && !simMode) HapticFeedback.mediumImpact();
+                _log('${kNames[color]} captured ${kNames[opp]}!');
                 _say(_Sheng.capture);
               }
             }
@@ -397,7 +432,6 @@ class LudoGame extends ChangeNotifier {
     turnIndex = kPlayers.indexOf(active[i]);
     _sixes = 0;
     phase = 'waiting-for-roll';
-    if (!simMode && _rng.nextInt(3) == 0) _say(_Sheng.generic);
     _maybeAutoplay();
   }
 
@@ -412,48 +446,46 @@ class LudoGame extends ChangeNotifier {
   void _win(String color) {
     winner = color;
     phase = 'game-over';
-    _settle(color);
-    _say(_Sheng.victory);
-    _log('${kNames[color]} wins the pot!');
+    settleDelta = {}; // cleared until the ledger runs
+    commentary = 'Calculating payouts…';
+    _log('${kNames[color]} reached home first');
     notifyListeners();
+    // Brief delay so the "Calculating payouts…" status is visible first.
+    Timer(Duration(milliseconds: simMode ? 250 : 750), () {
+      _settleLedger(color);
+      commentary = '${kNames[color]} won KES ${lastPool.toStringAsFixed(0)}!';
+      notifyListeners();
+    });
   }
 
-  /// Pot + KRA-style tax settlement, mirrored from the web build.
-  void _settle(String winnerColor) {
-    final winStake = stakes[winnerColor]!.toDouble();
-    var pool = winStake;
+  // ============================================================
+  // WALLET LEDGER  (plain-English explanation)
+  //
+  //  1. Total Pool  = the sum of every active player's committed stake.
+  //  2. The WINNER collects the whole pool. Because the winner also put in
+  //     their own stake, their NET wallet change is (pool - their stake).
+  //  3. Every LOSER permanently loses exactly their committed stake.
+  //
+  //  This is zero-sum: the cash the losers put in is exactly what the winner
+  //  takes out, so the four wallets together never gain or lose money.
+  // ============================================================
+  void _settleLedger(String winnerColor) {
+    final pool = totalPool.toDouble();
+    lastPool = pool;
+    settleDelta = {};
     for (final c in active) {
-      if (c == winnerColor) continue;
-      pool += min(winStake, stakes[c]!.toDouble());
+      if (c == winnerColor) {
+        final net = pool - stakes[c]!; // collected pool minus own committed stake
+        wallets[c] = wallets[c]! + net;
+        settleDelta[c] = net;
+        _log('${kNames[c]} +KES ${net.toStringAsFixed(0)} (won pot)');
+      } else {
+        final loss = stakes[c]!.toDouble(); // permanent deduction of the stake
+        wallets[c] = wallets[c]! - loss;
+        settleDelta[c] = -loss;
+        _log('${kNames[c]} -KES ${loss.toStringAsFixed(0)} (lost stake)');
+      }
     }
-    final com = pool * 0.10;
-    final exc = pool * 0.125;
-    final netW = pool - com - exc;
-    final taxW = max(0.0, netW - winStake);
-    final wht = taxW * 0.20;
-    final takeHome = netW - wht;
-
-    wallets[winnerColor] = wallets[winnerColor]! + (takeHome - winStake);
-    for (final c in active) {
-      if (c == winnerColor) continue;
-      wallets[c] = wallets[c]! - min(winStake, stakes[c]!.toDouble());
-    }
-  }
-
-  /// Payout preview for the given colour if they were to win 1st.
-  Map<String, double> payoutFor(String color) {
-    final myStake = stakes[color]!.toDouble();
-    var pool = myStake;
-    for (final c in active) {
-      if (c == color) continue;
-      pool += min(myStake, stakes[c]!.toDouble());
-    }
-    final com = pool * 0.10;
-    final exc = pool * 0.125;
-    final netW = pool - com - exc;
-    final taxW = max(0.0, netW - myStake);
-    final wht = taxW * 0.20;
-    return {'pool': pool, 'takeHome': netW - wht};
   }
 
   @override
