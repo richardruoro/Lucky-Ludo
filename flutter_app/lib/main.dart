@@ -218,6 +218,19 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  // Pixel centres of every on-board piece (so the dice can settle clear of them).
+  List<Offset> _piecePixels(double side) {
+    final u = side / 15.0;
+    final pts = <Offset>[];
+    for (final c in game.active) {
+      final steps = game.tokens[c]!;
+      for (var i = 0; i < 4; i++) {
+        pts.add(tokenDrawPos(c, i, steps[i], u));
+      }
+    }
+    return pts;
+  }
+
   // ---- Board ----
   Widget _boardArea() {
     return Center(
@@ -283,30 +296,20 @@ class _GameScreenState extends State<GameScreen> {
                           painter: BoardPainter(game),
                         ),
                       ),
-                      // The dice sits ON the board (bottom-centre), always
-                      // visible — fling or tap it to roll.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: side * 0.03,
-                        child: Center(
-                          // Only intercept touches when it's your turn to roll;
-                          // otherwise let taps reach a piece under the dice.
-                          child: IgnorePointer(
-                            ignoring: !canFling,
-                            child: FlingDice(
-                              value: game.dice,
-                              rollId: game.rollCount,
-                              enabled: canFling,
-                              size: side * 0.14,
-                              // Dice takes the current player's colour.
-                              color: game.started
-                                  ? kColors[game.current]!
-                                  : const Color(0xFF4E9D33),
-                              onRoll: (velocity, dir) =>
-                                  game.flingRoll(velocity),
-                            ),
-                          ),
+                      // The dice lives ON the board and is flung across it in
+                      // the swipe direction — it stays on the board and settles
+                      // clear of any piece you might need to play.
+                      Positioned.fill(
+                        child: BoardDice(
+                          side: side,
+                          value: game.dice,
+                          rollId: game.rollCount,
+                          enabled: canFling,
+                          color: game.started
+                              ? kColors[game.current]!
+                              : const Color(0xFF4E9D33),
+                          avoid: _piecePixels(side),
+                          onRoll: (velocity, dir) => game.flingRoll(velocity),
                         ),
                       ),
                     ],
@@ -654,48 +657,52 @@ class _GameScreenState extends State<GameScreen> {
 }
 
 // ============================================================================
-//  FLING DICE  — physics-based, swipe-to-roll die.
+//  BOARD DICE — a die that is FLUNG ACROSS THE BOARD.
 //
-//  Gestures:
-//   * Drag (pan): the die follows your finger; on release we read the swipe
-//     velocity from the gesture and "throw" the die.
-//   * Tap: a soft default velocity → a gentle bounce-and-spin.
-//
-//  The actual face value is decided by the game model (fair RNG); this widget
-//  only VISUALISES the roll. The harder you fling, the more spins, the longer
-//  the animation, and the further the die lurches in the swipe direction.
+//  Swipe it and it travels in the swipe direction, a distance proportional to
+//  the swipe speed, spinning as it goes. It is clamped to the board so it never
+//  leaves it, and it settles on a spot that is clear of every playing piece so
+//  it never hides a piece you might need to move. A tap does a short random
+//  hop. The fair face value is decided by the game model; this only animates it.
 // ============================================================================
-class FlingDice extends StatefulWidget {
+class BoardDice extends StatefulWidget {
+  final double side; // board pixel size
   final int value; // final face from the model
   final int rollId; // bumps each roll → triggers the animation
   final bool enabled; // only the human, on their roll turn
-  final double size;
   final Color color; // the current player's colour
+  final List<Offset> avoid; // piece centres (px) the die must not land on
   final void Function(double velocity, Offset direction) onRoll;
 
-  const FlingDice({
+  const BoardDice({
     super.key,
+    required this.side,
     required this.value,
     required this.rollId,
     required this.enabled,
-    required this.size,
     required this.color,
+    required this.avoid,
     required this.onRoll,
   });
 
   @override
-  State<FlingDice> createState() => _FlingDiceState();
+  State<BoardDice> createState() => _BoardDiceState();
 }
 
-class _FlingDiceState extends State<FlingDice>
+class _BoardDiceState extends State<BoardDice>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   final _rng = Random();
 
-  double _spins = 0; // total rotations for the current roll
-  Offset _throw = Offset.zero; // peak lurch offset (returns to zero each roll)
-  double? _pendingVelocity; // captured at gesture, used when rollId changes
+  // Resting / travel positions in board FRACTIONS (0..1), so they survive
+  // board resizes. Start near the bottom-centre.
+  Offset _fromFrac = const Offset(0.5, 0.80);
+  Offset _toFrac = const Offset(0.5, 0.80);
+  double _spins = 0;
+  double? _pendingVelocity;
   Offset? _pendingDir;
+
+  double get _size => widget.side * 0.14;
 
   @override
   void initState() {
@@ -707,50 +714,83 @@ class _FlingDiceState extends State<FlingDice>
   }
 
   @override
-  void didUpdateWidget(covariant FlingDice old) {
+  void didUpdateWidget(covariant BoardDice old) {
     super.didUpdateWidget(old);
-    // A new roll happened (ours via gesture, or the AI's) — animate it.
     if (widget.rollId != old.rollId) {
-      _runAnimation(
-        _pendingVelocity ?? 700, // default velocity for AI / programmatic rolls
-        _pendingDir ?? _randomDir(),
-      );
+      _animate(_pendingVelocity ?? 900, _pendingDir ?? _randomDir());
       _pendingVelocity = null;
       _pendingDir = null;
     }
   }
 
-  Offset _randomDir() => Offset(_rng.nextDouble() * 2 - 1, _rng.nextDouble() * 2 - 1);
+  Offset _randomDir() =>
+      Offset(_rng.nextDouble() * 2 - 1, _rng.nextDouble() * 2 - 1);
 
-  // ---- PHYSICS: turn a swipe velocity into spins / duration / throw ----
-  void _runAnimation(double velocity, Offset dir) {
-    const double maxSpeed = 4000.0; // px/sec treated as "max power"
+  Offset _currentFrac() =>
+      Offset.lerp(_fromFrac, _toFrac, Curves.easeOut.transform(_ctrl.value))!;
+
+  // ---- PHYSICS: swipe velocity → travel distance / spins / duration ----
+  void _animate(double velocity, Offset dir) {
+    const double maxSpeed = 4000.0;
     final double speed = velocity.clamp(0.0, maxSpeed);
-    final double norm = speed / maxSpeed; // 0..1 normalised swipe energy
+    final double norm = speed / maxSpeed; // 0..1 swipe energy
 
-    // Rotations: a gentle tap ≈ 2 turns, a hard fling ≈ 7 turns.
+    // Travel across the board: a flick ≈ 16% of the board, a hard fling ≈ 70%.
+    final double travel = 0.16 + norm * 0.55;
     final double spins = 2.0 + norm * 5.0;
-    // Duration: harder flings roll for longer (0.5s .. 1.4s).
-    final int durationMs = (500 + norm * 900).round();
-    // Throw distance: how far the die lurches along the swipe (8px .. 30px).
-    // Kept small so the die always springs back to its slot — never drifts off.
-    final double throwDistance = 8.0 + norm * 22.0;
+    final int durationMs = (450 + norm * 750).round();
 
-    // Normalise the direction vector (guard against a zero-length swipe).
     final double len = dir.distance;
     final Offset unit = len == 0 ? _randomDir() : dir / len;
 
+    final Offset start = _currentFrac();
+    final Offset desired = start + unit * travel;
+    final Offset target = _settleClearOfPieces(desired);
+
     setState(() {
+      _fromFrac = start;
+      _toFrac = target;
       _spins = spins;
-      _throw = unit * throwDistance;
     });
     _ctrl.duration = Duration(milliseconds: durationMs);
     _ctrl.forward(from: 0);
   }
 
+  // Clamp to the board and nudge to the nearest spot clear of every piece.
+  Offset _settleClearOfPieces(Offset desired) {
+    final side = widget.side;
+    final double m = (_size / 2 + 4) / side; // keep fully on the board
+    final double tokenR = 0.62 * (side / 15.0);
+    final double minDist = _size / 2 + tokenR + 4;
+
+    Offset clamp(Offset f) => Offset(
+          f.dx.clamp(m, 1 - m),
+          f.dy.clamp(m, 1 - m),
+        );
+    bool ok(Offset f) {
+      final c = Offset(f.dx * side, f.dy * side);
+      for (final a in widget.avoid) {
+        if ((a - c).distance < minDist) return false;
+      }
+      return true;
+    }
+
+    final base = clamp(desired);
+    if (ok(base)) return base;
+    // Spiral outward from the desired spot to find the closest free position.
+    for (double rad = 0.06; rad <= 0.7; rad += 0.05) {
+      for (int a = 0; a < 12; a++) {
+        final ang = a * pi / 6;
+        final cand =
+            clamp(Offset(base.dx + cos(ang) * rad, base.dy + sin(ang) * rad));
+        if (ok(cand)) return cand;
+      }
+    }
+    return base;
+  }
+
   void _fling(double velocity, Offset dir) {
     if (!widget.enabled) return;
-    // Remember the swipe so didUpdateWidget can replay it once the model rolls.
     _pendingVelocity = velocity;
     _pendingDir = dir;
     widget.onRoll(velocity, dir);
@@ -764,52 +804,54 @@ class _FlingDiceState extends State<FlingDice>
 
   @override
   Widget build(BuildContext context) {
-    final double t = Curves.easeOut.transform(_ctrl.value);
-    final double rotation = _spins * 2 * pi * t; // eases out to a stop
-    // Out-and-back lurch: 0 → small peak at mid-roll → back to 0. There is NO
-    // persistent offset, so the die can never wander away from its slot.
-    final double lurch = sin(_ctrl.value * pi);
-    final Offset offset = _throw * lurch;
-
-    // While spinning, flick through faces; settle on the real value at the end.
+    final size = _size;
+    final half = size / 2;
+    final frac = _currentFrac();
+    final centre = Offset(frac.dx * widget.side, frac.dy * widget.side);
+    final rotation = _spins * 2 * pi * Curves.easeOut.transform(_ctrl.value);
     final int face = (_ctrl.isAnimating && _ctrl.value < 0.82)
         ? ((_ctrl.value * 40).floor() % 6) + 1
         : widget.value;
 
-    return GestureDetector(
-      // Tap = soft bounce-spin. Swipe = velocity-driven fling (read on pan end).
-      onTap: () => _fling(700 + _rng.nextDouble() * 250, _randomDir()),
-      onPanStart: (_) {},
-      onPanEnd: (d) {
-        final v = d.velocity.pixelsPerSecond; // px/sec swipe velocity
-        // |v| = sqrt(vx^2 + vy^2)  (handled by Offset.distance)
-        _fling(v.distance, Offset(v.dx, v.dy));
-      },
-      child: Container(
-        // Highlight ring (in the player's colour) so it's obvious it's rollable.
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: widget.enabled
-              ? widget.color.withOpacity(0.22)
-              : Colors.transparent,
-          border: Border.all(
-            color: widget.enabled ? Colors.white : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Transform.translate(
-          offset: offset,
-          child: Transform.rotate(
-            angle: rotation,
-            child: Opacity(
-              opacity: (widget.enabled || _ctrl.isAnimating) ? 1.0 : 0.9,
-              child: DiceFace(
-                  value: face, size: widget.size, color: widget.color),
+    return Stack(
+      children: [
+        Positioned(
+          left: centre.dx - half,
+          top: centre.dy - half,
+          width: size,
+          height: size,
+          // Only grab touches when it's your turn to roll, so taps on a piece
+          // can still get through when it isn't.
+          child: IgnorePointer(
+            ignoring: !widget.enabled,
+            child: GestureDetector(
+              onTap: () => _fling(750 + _rng.nextDouble() * 250, _randomDir()),
+              onPanStart: (_) {},
+              onPanEnd: (d) {
+                final v = d.velocity.pixelsPerSecond; // |v| = sqrt(vx²+vy²)
+                _fling(v.distance, Offset(v.dx, v.dy));
+              },
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.enabled
+                      ? widget.color.withOpacity(0.22)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: widget.enabled ? Colors.white : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Transform.rotate(
+                  angle: rotation,
+                  child: DiceFace(value: face, size: size, color: widget.color),
+                ),
+              ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'sfx.dart';
 
 /// Turn / colour order.
 const List<String> kPlayers = ['red', 'green', 'yellow', 'blue'];
@@ -161,6 +162,7 @@ class LudoGame extends ChangeNotifier {
 
   void toggleMute() {
     muted = !muted;
+    Sfx.muted = muted;
     notifyListeners();
   }
 
@@ -216,20 +218,11 @@ class LudoGame extends ChangeNotifier {
 
   // ---- ANIMATION / FEEDBACK ----
 
-  /// Audio + haptic feedback whose intensity scales with the fling velocity.
-  /// SystemSound has no pitch control without an audio plugin, so we APPROXIMATE
-  /// a louder/faster rattle by firing more click "ticks" the harder the fling.
+  /// Real dice-roll sound (pitch scales with fling velocity) plus a haptic whose
+  /// strength tiers by the swipe speed.
   void _rollFeedback(double velocity) {
     if (simMode) return;
-    if (!muted) {
-      // 3 ticks for a soft tap, up to ~12 for a hard fling, spaced 40ms apart.
-      final ticks = (3 + (velocity / 300).clamp(0, 9)).round();
-      for (var i = 0; i < ticks; i++) {
-        Timer(Duration(milliseconds: i * 40), () {
-          if (!muted) SystemSound.play(SystemSoundType.click);
-        });
-      }
-    }
+    Sfx.dice(velocity);
     // Vibration strength tiers based on the swipe speed (px/sec).
     if (velocity > 1800) {
       HapticFeedback.heavyImpact();
@@ -373,7 +366,7 @@ class LudoGame extends ChangeNotifier {
       if (step < end) {
         step = step == 0 ? 1 : step + 1;
         tokens[color]![idx] = step;
-        if (!muted) SystemSound.play(SystemSoundType.click);
+        Sfx.move();
         notifyListeners();
         _moveTimer = Timer(const Duration(milliseconds: 140), hop);
       } else {
@@ -409,7 +402,10 @@ class LudoGame extends ChangeNotifier {
               if (oc[0] == fc[0] && oc[1] == fc[1]) {
                 os[oi] = 0;
                 extra = true;
-                if (!muted && !simMode) HapticFeedback.mediumImpact();
+                if (!simMode) {
+                  Sfx.capture();
+                  if (!muted) HapticFeedback.mediumImpact();
+                }
                 _log('${kNames[color]} captured ${kNames[opp]}!');
                 _say(_Sheng.capture);
               }
@@ -452,6 +448,7 @@ class LudoGame extends ChangeNotifier {
     settleDelta = {}; // cleared until the ledger runs
     commentary = 'Calculating payouts…';
     _log('${kNames[color]} reached home first');
+    if (!simMode) Sfx.win();
     notifyListeners();
     // Brief delay so the "Calculating payouts…" status is visible first.
     Timer(Duration(milliseconds: simMode ? 250 : 750), () {

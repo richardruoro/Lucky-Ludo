@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -26,3 +27,5 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/sfx/
