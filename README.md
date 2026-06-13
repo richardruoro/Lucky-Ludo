@@ -14,6 +14,31 @@ a smart computer opponent, a per-player "phone screen" simulator, and a
   (Actions tab → latest deploy → environment URL), and is typically:
   `https://richardruoro.github.io/Lucky-Ludo/`
 - **Locally:** just open `index.html` in any modern browser.
+- **Android APK:** download the latest `lucky-ludo.apk` from the repo
+  **Releases** page and install it on your phone (see *📱 Android APK* below).
+
+## 📱 Android APK
+
+The game ships as an installable Android app — a thin native **WebView** shell
+(in `android/`) around the same `index.html`, so the web and app versions never
+drift. The **Build Android APK** workflow (`.github/workflows/android.yml`)
+compiles a debug APK and attaches it to a GitHub Release.
+
+**Get the APK on your phone:**
+
+1. Open the repo **Releases** page → latest **Lucky Ludo APK** release.
+2. Download `lucky-ludo.apk` and tap it; allow installing from this source if
+   prompted. (It's a debug build signed with the standard Android debug key.)
+
+**Builds happen automatically** whenever `index.html` or anything under
+`android/` changes on `main`; the APK is (re)published to the fixed
+`apk-latest` Release at:
+`https://github.com/richardruoro/Lucky-Ludo/releases/latest`
+
+You can also build on demand from the Actions tab → **Build Android APK** →
+**Run workflow**.
+
+> The app needs internet on first load (Tailwind / icons / fonts come from CDNs).
 
 ## 🎮 How to play
 

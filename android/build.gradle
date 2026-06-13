@@ -1,0 +1,6 @@
+// Top-level build file. The Android Gradle Plugin is declared here and applied
+// in the :app module. No third-party dependencies — the app is a thin native
+// WebView shell around the single-file web game in index.html.
+plugins {
+    id 'com.android.application' version '8.2.2' apply false
+}
