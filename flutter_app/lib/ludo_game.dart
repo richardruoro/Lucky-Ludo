@@ -36,28 +36,31 @@ const List<List<int>> kTrack = [
   [7, 0],
 ];
 
+// Corner layout matches the app icon: green = top-left, red = top-right,
+// yellow = bottom-left, blue = bottom-right. Each colour owns a complete,
+// internally-consistent yard → start → home-column → goal path.
 const Map<String, int> kStartIndices = {
-  'red': 1, 'green': 14, 'yellow': 27, 'blue': 40,
+  'red': 14, 'green': 1, 'yellow': 40, 'blue': 27,
 };
 
 const Set<int> kSafeIndices = {1, 8, 14, 21, 27, 34, 40, 47};
 
 const Map<String, List<List<int>>> kYards = {
-  'red': [[2, 2], [2, 3], [3, 2], [3, 3]],
-  'green': [[2, 11], [2, 12], [3, 11], [3, 12]],
-  'yellow': [[11, 11], [11, 12], [12, 11], [12, 12]],
-  'blue': [[11, 2], [11, 3], [12, 2], [12, 3]],
+  'green': [[2, 2], [2, 3], [3, 2], [3, 3]], // top-left
+  'red': [[2, 11], [2, 12], [3, 11], [3, 12]], // top-right
+  'yellow': [[11, 2], [11, 3], [12, 2], [12, 3]], // bottom-left
+  'blue': [[11, 11], [11, 12], [12, 11], [12, 12]], // bottom-right
 };
 
 const Map<String, List<List<int>>> kHomePaths = {
-  'red': [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]],
-  'green': [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],
-  'yellow': [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]],
-  'blue': [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]],
+  'green': [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]], // left arm
+  'red': [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]], // top arm
+  'yellow': [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]], // bottom arm
+  'blue': [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]], // right arm
 };
 
 const Map<String, List<int>> kHomeEnd = {
-  'red': [7, 6], 'green': [6, 7], 'yellow': [7, 8], 'blue': [8, 7],
+  'green': [7, 6], 'red': [6, 7], 'yellow': [8, 7], 'blue': [7, 8],
 };
 
 /// Maps a token's step to a [row, col] board cell.

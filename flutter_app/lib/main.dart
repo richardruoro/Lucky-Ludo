@@ -203,55 +203,65 @@ class _GameScreenState extends State<GameScreen> {
   Widget _boardArea() {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
+        constraints: const BoxConstraints(maxWidth: 540),
         child: AspectRatio(
           aspectRatio: 1,
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final side = c.maxWidth;
-              final u = side / 15.0;
-              return GestureDetector(
-                // Tap fallback: tapping the board either selects a piece (when a
-                // move is pending) or, if it's your turn to roll, triggers the
-                // standard bounce-and-spin roll.
-                onTapDown: (d) {
-                  if (!game.isHumanTurn) return;
-                  if (game.phase == 'waiting-for-move') {
-                    int? hit;
-                    double best = u * 0.9;
-                    for (final idx in game.eligible) {
-                      final step = game.tokens[game.current]![idx];
-                      final pos = tokenDrawPos(game.current, idx, step, u);
-                      final dist = (pos - d.localPosition).distance;
-                      if (dist < best) {
-                        best = dist;
-                        hit = idx;
-                      }
-                    }
-                    if (hit != null) game.move(hit);
-                  } else if (game.phase == 'waiting-for-roll') {
-                    // Soft "tap" velocity → gentle bounce-spin.
-                    game.flingRoll(650 + Random().nextDouble() * 250);
-                  }
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black54,
-                        blurRadius: 14,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: CustomPaint(
-                    size: Size(side, side),
-                    painter: BoardPainter(game),
-                  ),
+          child: Container(
+            // Wooden bezel frame around the board, matching the app icon.
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFC0894C), Color(0xFF7A4E26)],
+              ),
+              border: Border.all(color: const Color(0xFF4A2E16), width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black54,
+                  blurRadius: 16,
+                  offset: Offset(0, 8),
                 ),
-              );
-            },
+              ],
+            ),
+            padding: const EdgeInsets.all(13),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final side = c.maxWidth;
+                  final u = side / 15.0;
+                  return GestureDetector(
+                    // Tap fallback: select a piece (when a move is pending) or,
+                    // if it's your turn to roll, trigger a bounce-and-spin roll.
+                    onTapDown: (d) {
+                      if (!game.isHumanTurn) return;
+                      if (game.phase == 'waiting-for-move') {
+                        int? hit;
+                        double best = u * 0.9;
+                        for (final idx in game.eligible) {
+                          final step = game.tokens[game.current]![idx];
+                          final pos = tokenDrawPos(game.current, idx, step, u);
+                          final dist = (pos - d.localPosition).distance;
+                          if (dist < best) {
+                            best = dist;
+                            hit = idx;
+                          }
+                        }
+                        if (hit != null) game.move(hit);
+                      } else if (game.phase == 'waiting-for-roll') {
+                        // Soft "tap" velocity → gentle bounce-spin.
+                        game.flingRoll(650 + Random().nextDouble() * 250);
+                      }
+                    },
+                    child: CustomPaint(
+                      size: Size(side, side),
+                      painter: BoardPainter(game),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ),
