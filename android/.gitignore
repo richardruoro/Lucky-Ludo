@@ -11,5 +11,6 @@ gradle/wrapper/
 # Local SDK pointer
 local.properties
 
-# The web game is copied in from the repo root at build time.
+# The web game + vendored assets are copied in from the repo root at build time.
 app/src/main/assets/index.html
+app/src/main/assets/vendor/
