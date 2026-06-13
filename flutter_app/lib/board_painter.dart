@@ -268,8 +268,19 @@ class BoardPainter extends CustomPainter {
         game.phase == 'waiting-for-move';
 
     if (highlight) {
-      canvas.drawCircle(c, r + _u * 0.16,
-          Paint()..color = Colors.white.withOpacity(0.85));
+      // Bright pulsing-style halo so it's obvious which pieces are tappable.
+      canvas.drawCircle(c, r + _u * 0.34,
+          Paint()..color = const Color(0xFFFFE08A).withOpacity(0.55));
+      canvas.drawCircle(c, r + _u * 0.20,
+          Paint()..color = Colors.white);
+      canvas.drawCircle(
+        c,
+        r + _u * 0.20,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _u * 0.06
+          ..color = const Color(0xFFFFB300),
+      );
     }
     canvas.drawCircle(c, r, Paint()..color = kColors[color]!);
     canvas.drawCircle(

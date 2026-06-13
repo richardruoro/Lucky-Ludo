@@ -100,8 +100,10 @@ class _GameScreenState extends State<GameScreen> {
           child: SafeArea(
             child: Stack(
               children: [
-                SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                // Fixed, non-scrolling layout so flinging the dice never scrolls
+                // the page and everything always fits the screen.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -109,13 +111,13 @@ class _GameScreenState extends State<GameScreen> {
                       const SizedBox(height: 6),
                       _statusBanner(),
                       const SizedBox(height: 8),
-                      _boardArea(),
-                      const SizedBox(height: 10),
+                      // Board takes all remaining vertical space (and shrinks to
+                      // fit on short screens).
+                      Expanded(child: _boardArea()),
+                      const SizedBox(height: 8),
                       _controls(),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       _wallets(),
-                      const SizedBox(height: 10),
-                      _logPanel(),
                     ],
                   ),
                 ),
@@ -288,12 +290,22 @@ class _GameScreenState extends State<GameScreen> {
                         right: 0,
                         bottom: side * 0.03,
                         child: Center(
-                          child: FlingDice(
-                            value: game.dice,
-                            rollId: game.rollCount,
-                            enabled: canFling,
-                            size: side * 0.14,
-                            onRoll: (velocity, dir) => game.flingRoll(velocity),
+                          // Only intercept touches when it's your turn to roll;
+                          // otherwise let taps reach a piece under the dice.
+                          child: IgnorePointer(
+                            ignoring: !canFling,
+                            child: FlingDice(
+                              value: game.dice,
+                              rollId: game.rollCount,
+                              enabled: canFling,
+                              size: side * 0.14,
+                              // Dice takes the current player's colour.
+                              color: game.started
+                                  ? kColors[game.current]!
+                                  : const Color(0xFF4E9D33),
+                              onRoll: (velocity, dir) =>
+                                  game.flingRoll(velocity),
+                            ),
                           ),
                         ),
                       ),
@@ -308,51 +320,20 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // ---- Controls (turn label + Play/Simulate) ----
+  // ---- Controls (compact Play/Simulate row; status is in the banner) ----
   Widget _controls() {
-    final color = kColors[game.current]!;
-    final canFling = game.started &&
-        game.isHumanTurn &&
-        game.phase == 'waiting-for-roll';
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: _panel(),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            game.started ? '${kNames[game.current]} to move' : 'Ready to play',
-            style: TextStyle(
-                fontWeight: FontWeight.w800, color: color, fontSize: 14),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            canFling
-                ? 'Fling or tap the dice on the board to roll'
-                : (game.started
-                    ? (game.isHumanTurn
-                        ? 'Tap a glowing piece to move'
-                        : 'Computer thinking…')
-                    : 'Set stakes below, then Play or Simulate'),
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 11, color: Colors.black54),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _actionButton('Play', const Color(0xFF2E8B57),
-                    () => game.start(simulate: false)),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _actionButton('Simulate', const Color(0xFF3F51B5),
-                    () => game.start(simulate: true)),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(
+          child: _actionButton('Play', const Color(0xFF2E8B57),
+              () => game.start(simulate: false)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _actionButton('Simulate', const Color(0xFF3F51B5),
+              () => game.start(simulate: true)),
+        ),
+      ],
     );
   }
 
@@ -568,32 +549,6 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // ---- Log ----
-  Widget _logPanel() {
-    final lines = game.log.reversed.take(5).toList();
-    return Container(
-      width: double.infinity,
-      height: 78,
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xCC1C1206),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: lines
-            .map((l) => Text(l,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Color(0xFFE9D9B6),
-                    fontSize: 10,
-                    fontFamily: 'monospace')))
-            .toList(),
-      ),
-    );
-  }
-
   BoxDecoration _panel() => BoxDecoration(
         color: const Color(0xF2FFFFFF),
         borderRadius: BorderRadius.circular(12),
@@ -715,6 +670,7 @@ class FlingDice extends StatefulWidget {
   final int rollId; // bumps each roll → triggers the animation
   final bool enabled; // only the human, on their roll turn
   final double size;
+  final Color color; // the current player's colour
   final void Function(double velocity, Offset direction) onRoll;
 
   const FlingDice({
@@ -723,6 +679,7 @@ class FlingDice extends StatefulWidget {
     required this.rollId,
     required this.enabled,
     required this.size,
+    required this.color,
     required this.onRoll,
   });
 
@@ -829,17 +786,15 @@ class _FlingDiceState extends State<FlingDice>
         _fling(v.distance, Offset(v.dx, v.dy));
       },
       child: Container(
-        // Highlight ring so it's obvious the die is the thing you roll.
+        // Highlight ring (in the player's colour) so it's obvious it's rollable.
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: widget.enabled
-              ? const Color(0x333C9A3C)
+              ? widget.color.withOpacity(0.22)
               : Colors.transparent,
           border: Border.all(
-            color: widget.enabled
-                ? const Color(0xFF3C9A3C)
-                : Colors.transparent,
+            color: widget.enabled ? Colors.white : Colors.transparent,
             width: 2,
           ),
         ),
@@ -848,8 +803,9 @@ class _FlingDiceState extends State<FlingDice>
           child: Transform.rotate(
             angle: rotation,
             child: Opacity(
-              opacity: (widget.enabled || _ctrl.isAnimating) ? 1.0 : 0.85,
-              child: DiceFace(value: face, size: widget.size),
+              opacity: (widget.enabled || _ctrl.isAnimating) ? 1.0 : 0.9,
+              child: DiceFace(
+                  value: face, size: widget.size, color: widget.color),
             ),
           ),
         ),
@@ -858,40 +814,53 @@ class _FlingDiceState extends State<FlingDice>
   }
 }
 
-/// A green die face with white pips.
+/// A die face coloured to match the current player, with adaptive pips.
 class DiceFace extends StatelessWidget {
   final int value;
   final double size;
-  const DiceFace({super.key, required this.value, required this.size});
+  final Color color;
+  const DiceFace({
+    super.key,
+    required this.value,
+    required this.size,
+    this.color = const Color(0xFF4E9D33),
+  });
 
   @override
   Widget build(BuildContext context) {
+    final light = Color.lerp(color, Colors.white, 0.28)!;
+    final dark = Color.lerp(color, Colors.black, 0.16)!;
+    // White pips on dark dice, dark pips on light dice (e.g. yellow).
+    final pip = color.computeLuminance() > 0.55
+        ? const Color(0xFF2A1C0C)
+        : Colors.white;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF5FBF5F), Color(0xFF3C9A3C)],
+          colors: [light, dark],
         ),
         borderRadius: BorderRadius.circular(size * 0.22),
         boxShadow: const [
           BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
-      child: CustomPaint(painter: _PipPainter(value)),
+      child: CustomPaint(painter: _PipPainter(value, pip)),
     );
   }
 }
 
 class _PipPainter extends CustomPainter {
   final int value;
-  _PipPainter(this.value);
+  final Color pipColor;
+  _PipPainter(this.value, this.pipColor);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = Colors.white;
+    final p = Paint()..color = pipColor;
     final r = size.width * 0.09;
     final a = size.width * 0.26, b = size.width * 0.5, c = size.width * 0.74;
     void dot(double x, double y) => canvas.drawCircle(Offset(x, y), r, p);
@@ -912,7 +881,8 @@ class _PipPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _PipPainter old) => old.value != value;
+  bool shouldRepaint(covariant _PipPainter old) =>
+      old.value != value || old.pipColor != pipColor;
 }
 
 /// Faint wood-plank seams behind the whole screen.
