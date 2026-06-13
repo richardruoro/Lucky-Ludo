@@ -1,0 +1,75 @@
+name: Build Android APK
+
+on:
+  # Manual run from the Actions tab.
+  workflow_dispatch:
+  # Or push a tag like `apk-latest` / `apk-v2` to build + publish a Release.
+  push:
+    tags:
+      - 'apk-*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Assemble debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Bundle the web game into Android assets
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp index.html android/app/src/main/assets/index.html
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Generate Gradle wrapper (pinned)
+        working-directory: android
+        run: gradle wrapper --gradle-version 8.6 --no-daemon
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Stage APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk lucky-ludo.apk
+
+      - name: Upload APK as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lucky-ludo-apk
+          path: lucky-ludo.apk
+
+      # When triggered by an `apk-*` tag, publish a Release so the APK has a
+      # stable public download URL you can open straight from your phone.
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/apk-')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Lucky Ludo APK (${{ github.ref_name }})
+          body: |
+            **Lucky Ludo** debug APK — install and test on Android.
+
+            1. Download `lucky-ludo.apk` below on your phone.
+            2. Open it; if prompted, allow installing from this source.
+            3. Launch **Lucky Ludo**. (Needs internet on first load for styling.)
+
+            This is a debug build, signed with the standard Android debug key.
+          files: lucky-ludo.apk
+          make_latest: true
