@@ -3,7 +3,24 @@ import 'package:flutter/material.dart';
 import 'ludo_game.dart';
 import 'board_painter.dart';
 
-void main() => runApp(const LudoApp());
+void main() {
+  // Show a readable red box (with the error text) instead of a blank/grey area
+  // if any widget throws while building in a release build — makes bugs visible.
+  ErrorWidget.builder = (FlutterErrorDetails details) => Material(
+        color: const Color(0xFFB3261E),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Center(
+            child: Text(
+              'UI error:\n${details.exceptionAsString()}',
+              style: const TextStyle(color: Colors.white, fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+  runApp(const LudoApp());
+}
 
 class LudoApp extends StatelessWidget {
   const LudoApp({super.key});
@@ -231,33 +248,56 @@ class _GameScreenState extends State<GameScreen> {
                 builder: (context, c) {
                   final side = c.maxWidth;
                   final u = side / 15.0;
-                  return GestureDetector(
-                    // Tap fallback: select a piece (when a move is pending) or,
-                    // if it's your turn to roll, trigger a bounce-and-spin roll.
-                    onTapDown: (d) {
-                      if (!game.isHumanTurn) return;
-                      if (game.phase == 'waiting-for-move') {
-                        int? hit;
-                        double best = u * 0.9;
-                        for (final idx in game.eligible) {
-                          final step = game.tokens[game.current]![idx];
-                          final pos = tokenDrawPos(game.current, idx, step, u);
-                          final dist = (pos - d.localPosition).distance;
-                          if (dist < best) {
-                            best = dist;
-                            hit = idx;
+                  final canFling = game.started &&
+                      game.isHumanTurn &&
+                      game.phase == 'waiting-for-roll';
+                  return Stack(
+                    children: [
+                      GestureDetector(
+                        // Tap fallback: select a piece (when a move is pending)
+                        // or, if it's your turn to roll, do a bounce-spin roll.
+                        onTapDown: (d) {
+                          if (!game.isHumanTurn) return;
+                          if (game.phase == 'waiting-for-move') {
+                            int? hit;
+                            double best = u * 0.9;
+                            for (final idx in game.eligible) {
+                              final step = game.tokens[game.current]![idx];
+                              final pos =
+                                  tokenDrawPos(game.current, idx, step, u);
+                              final dist = (pos - d.localPosition).distance;
+                              if (dist < best) {
+                                best = dist;
+                                hit = idx;
+                              }
+                            }
+                            if (hit != null) game.move(hit);
+                          } else if (game.phase == 'waiting-for-roll') {
+                            game.flingRoll(650 + Random().nextDouble() * 250);
                           }
-                        }
-                        if (hit != null) game.move(hit);
-                      } else if (game.phase == 'waiting-for-roll') {
-                        // Soft "tap" velocity → gentle bounce-spin.
-                        game.flingRoll(650 + Random().nextDouble() * 250);
-                      }
-                    },
-                    child: CustomPaint(
-                      size: Size(side, side),
-                      painter: BoardPainter(game),
-                    ),
+                        },
+                        child: CustomPaint(
+                          size: Size(side, side),
+                          painter: BoardPainter(game),
+                        ),
+                      ),
+                      // The dice sits ON the board (bottom-centre), always
+                      // visible — fling or tap it to roll.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: side * 0.03,
+                        child: Center(
+                          child: FlingDice(
+                            value: game.dice,
+                            rollId: game.rollCount,
+                            enabled: canFling,
+                            size: side * 0.14,
+                            onRoll: (velocity, dir) => game.flingRoll(velocity),
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -268,84 +308,63 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // ---- Controls (turn + fling dice + Play/Simulate) ----
+  // ---- Controls (turn label + Play/Simulate) ----
   Widget _controls() {
     final color = kColors[game.current]!;
     final canFling = game.started &&
         game.isHumanTurn &&
         game.phase == 'waiting-for-roll';
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: _panel(),
-            child: Row(
-              children: [
-                FlingDice(
-                  value: game.dice,
-                  rollId: game.rollCount,
-                  enabled: canFling,
-                  size: 50,
-                  onRoll: (velocity, dir) => game.flingRoll(velocity),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        game.started ? '${kNames[game.current]} to move' : 'Ready',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: color,
-                          fontSize: 13,
-                        ),
-                      ),
-                      Text(
-                        canFling
-                            ? 'Fling or tap the dice to roll'
-                            : (game.started
-                                ? (game.isHumanTurn
-                                    ? 'Tap a glowing piece'
-                                    : 'Computer thinking…')
-                                : 'Press Play or Simulate'),
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.black54),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: _panel(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            game.started ? '${kNames[game.current]} to move' : 'Ready to play',
+            style: TextStyle(
+                fontWeight: FontWeight.w800, color: color, fontSize: 14),
           ),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          children: [
-            _actionButton('Play', const Color(0xFF2E8B57),
-                () => game.start(simulate: false)),
-            const SizedBox(height: 6),
-            _actionButton('Simulate', const Color(0xFF3F51B5),
-                () => game.start(simulate: true)),
-          ],
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            canFling
+                ? 'Fling or tap the dice on the board to roll'
+                : (game.started
+                    ? (game.isHumanTurn
+                        ? 'Tap a glowing piece to move'
+                        : 'Computer thinking…')
+                    : 'Set stakes below, then Play or Simulate'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, color: Colors.black54),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _actionButton('Play', const Color(0xFF2E8B57),
+                    () => game.start(simulate: false)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _actionButton('Simulate', const Color(0xFF3F51B5),
+                    () => game.start(simulate: true)),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _actionButton(String label, Color color, VoidCallback onTap) {
     return SizedBox(
-      width: 104,
-      height: 38,
+      height: 42,
       child: FilledButton(
         style: FilledButton.styleFrom(
             backgroundColor: color, padding: EdgeInsets.zero),
         onPressed: onTap,
         child: Text(label,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
       ),
     );
   }
@@ -387,32 +406,42 @@ class _GameScreenState extends State<GameScreen> {
                     border: Border.all(color: kColors[c]!, width: 1.5),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(kNames[c]!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                               color: kColors[c])),
-                      Text('KES ${game.wallets[c]!.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.w700)),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                            'KES ${game.wallets[c]!.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
                       const SizedBox(height: 2),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _stepBtn(Icons.remove, editable,
-                              () => game.adjustStake(c, -5)),
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text('${game.stakes[c]}',
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800)),
-                          ),
-                          _stepBtn(Icons.add, editable,
-                              () => game.adjustStake(c, 5)),
-                        ],
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _stepBtn(Icons.remove, editable,
+                                () => game.adjustStake(c, -5)),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: Text('${game.stakes[c]}',
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800)),
+                            ),
+                            _stepBtn(Icons.add, editable,
+                                () => game.adjustStake(c, 5)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
