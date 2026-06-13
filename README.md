@@ -24,6 +24,12 @@ The game ships as an installable Android app — a thin native **WebView** shell
 drift. The **Build Android APK** workflow (`.github/workflows/android.yml`)
 compiles a debug APK and attaches it to a GitHub Release.
 
+The app is **fully offline**: Tailwind and the icon set are vendored under
+`vendor/` and bundled into both the web build and the APK, and all gameplay
+(human-vs-human pass-and-play, human-vs-AI, the commentator and sounds) runs
+on-device with no network. Play against the computer or against each other on
+the same phone — set each colour's role in the Match Lobby.
+
 **Get the APK on your phone:**
 
 1. Open the repo **Releases** page → latest **Lucky Ludo APK** release.
@@ -38,7 +44,8 @@ compiles a debug APK and attaches it to a GitHub Release.
 You can also build on demand from the Actions tab → **Build Android APK** →
 **Run workflow**.
 
-> The app needs internet on first load (Tailwind / icons / fonts come from CDNs).
+> Works with no connection at all — Tailwind and icons are vendored under
+> `vendor/` and bundled into the APK.
 
 ## 🎮 How to play
 
