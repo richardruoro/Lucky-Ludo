@@ -1,0 +1,19 @@
+# Only lib/ and pubspec.yaml are committed; the platform scaffolding
+# (android/, ios/, etc.) is generated in CI by `flutter create`.
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Generated platform folders
+android/
+ios/
+linux/
+macos/
+windows/
+web/
+.metadata
+analysis_options.yaml
+test/
