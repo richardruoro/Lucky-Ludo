@@ -203,55 +203,65 @@ class _GameScreenState extends State<GameScreen> {
   Widget _boardArea() {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
+        constraints: const BoxConstraints(maxWidth: 540),
         child: AspectRatio(
           aspectRatio: 1,
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final side = c.maxWidth;
-              final u = side / 15.0;
-              return GestureDetector(
-                // Tap fallback: tapping the board either selects a piece (when a
-                // move is pending) or, if it's your turn to roll, triggers the
-                // standard bounce-and-spin roll.
-                onTapDown: (d) {
-                  if (!game.isHumanTurn) return;
-                  if (game.phase == 'waiting-for-move') {
-                    int? hit;
-                    double best = u * 0.9;
-                    for (final idx in game.eligible) {
-                      final step = game.tokens[game.current]![idx];
-                      final pos = tokenDrawPos(game.current, idx, step, u);
-                      final dist = (pos - d.localPosition).distance;
-                      if (dist < best) {
-                        best = dist;
-                        hit = idx;
-                      }
-                    }
-                    if (hit != null) game.move(hit);
-                  } else if (game.phase == 'waiting-for-roll') {
-                    // Soft "tap" velocity → gentle bounce-spin.
-                    game.flingRoll(650 + Random().nextDouble() * 250);
-                  }
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black54,
-                        blurRadius: 14,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: CustomPaint(
-                    size: Size(side, side),
-                    painter: BoardPainter(game),
-                  ),
+          child: Container(
+            // Wooden bezel frame around the board, matching the app icon.
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFC0894C), Color(0xFF7A4E26)],
+              ),
+              border: Border.all(color: const Color(0xFF4A2E16), width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black54,
+                  blurRadius: 16,
+                  offset: Offset(0, 8),
                 ),
-              );
-            },
+              ],
+            ),
+            padding: const EdgeInsets.all(13),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final side = c.maxWidth;
+                  final u = side / 15.0;
+                  return GestureDetector(
+                    // Tap fallback: select a piece (when a move is pending) or,
+                    // if it's your turn to roll, trigger a bounce-and-spin roll.
+                    onTapDown: (d) {
+                      if (!game.isHumanTurn) return;
+                      if (game.phase == 'waiting-for-move') {
+                        int? hit;
+                        double best = u * 0.9;
+                        for (final idx in game.eligible) {
+                          final step = game.tokens[game.current]![idx];
+                          final pos = tokenDrawPos(game.current, idx, step, u);
+                          final dist = (pos - d.localPosition).distance;
+                          if (dist < best) {
+                            best = dist;
+                            hit = idx;
+                          }
+                        }
+                        if (hit != null) game.move(hit);
+                      } else if (game.phase == 'waiting-for-roll') {
+                        // Soft "tap" velocity → gentle bounce-spin.
+                        game.flingRoll(650 + Random().nextDouble() * 250);
+                      }
+                    },
+                    child: CustomPaint(
+                      size: Size(side, side),
+                      painter: BoardPainter(game),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ),
@@ -697,8 +707,7 @@ class _FlingDiceState extends State<FlingDice>
   final _rng = Random();
 
   double _spins = 0; // total rotations for the current roll
-  Offset _throw = Offset.zero; // peak lurch offset
-  Offset _drag = Offset.zero; // live finger-follow offset while dragging
+  Offset _throw = Offset.zero; // peak lurch offset (returns to zero each roll)
   double? _pendingVelocity; // captured at gesture, used when rollId changes
   Offset? _pendingDir;
 
@@ -737,8 +746,9 @@ class _FlingDiceState extends State<FlingDice>
     final double spins = 2.0 + norm * 5.0;
     // Duration: harder flings roll for longer (0.5s .. 1.4s).
     final int durationMs = (500 + norm * 900).round();
-    // Throw distance: how far the die lurches along the swipe (18px .. 64px).
-    final double throwDistance = 18.0 + norm * 46.0;
+    // Throw distance: how far the die lurches along the swipe (8px .. 30px).
+    // Kept small so the die always springs back to its slot — never drifts off.
+    final double throwDistance = 8.0 + norm * 22.0;
 
     // Normalise the direction vector (guard against a zero-length swipe).
     final double len = dir.distance;
@@ -747,7 +757,6 @@ class _FlingDiceState extends State<FlingDice>
     setState(() {
       _spins = spins;
       _throw = unit * throwDistance;
-      _drag = Offset.zero;
     });
     _ctrl.duration = Duration(milliseconds: durationMs);
     _ctrl.forward(from: 0);
@@ -771,9 +780,10 @@ class _FlingDiceState extends State<FlingDice>
   Widget build(BuildContext context) {
     final double t = Curves.easeOut.transform(_ctrl.value);
     final double rotation = _spins * 2 * pi * t; // eases out to a stop
-    // Out-and-back lurch: 0 → peak at mid-roll → back to 0.
+    // Out-and-back lurch: 0 → small peak at mid-roll → back to 0. There is NO
+    // persistent offset, so the die can never wander away from its slot.
     final double lurch = sin(_ctrl.value * pi);
-    final Offset offset = _drag + _throw * lurch;
+    final Offset offset = _throw * lurch;
 
     // While spinning, flick through faces; settle on the real value at the end.
     final int face = (_ctrl.isAnimating && _ctrl.value < 0.82)
@@ -781,22 +791,37 @@ class _FlingDiceState extends State<FlingDice>
         : widget.value;
 
     return GestureDetector(
+      // Tap = soft bounce-spin. Swipe = velocity-driven fling (read on pan end).
       onTap: () => _fling(700 + _rng.nextDouble() * 250, _randomDir()),
-      onPanUpdate: (d) {
-        if (widget.enabled) setState(() => _drag += d.delta);
-      },
+      onPanStart: (_) {},
       onPanEnd: (d) {
         final v = d.velocity.pixelsPerSecond; // px/sec swipe velocity
         // |v| = sqrt(vx^2 + vy^2)  (handled by Offset.distance)
         _fling(v.distance, Offset(v.dx, v.dy));
       },
-      child: Transform.translate(
-        offset: offset,
-        child: Transform.rotate(
-          angle: rotation,
-          child: Opacity(
-            opacity: (widget.enabled || _ctrl.isAnimating) ? 1.0 : 0.8,
-            child: DiceFace(value: face, size: widget.size),
+      child: Container(
+        // Highlight ring so it's obvious the die is the thing you roll.
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: widget.enabled
+              ? const Color(0x333C9A3C)
+              : Colors.transparent,
+          border: Border.all(
+            color: widget.enabled
+                ? const Color(0xFF3C9A3C)
+                : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Transform.translate(
+          offset: offset,
+          child: Transform.rotate(
+            angle: rotation,
+            child: Opacity(
+              opacity: (widget.enabled || _ctrl.isAnimating) ? 1.0 : 0.85,
+              child: DiceFace(value: face, size: widget.size),
+            ),
           ),
         ),
       ),

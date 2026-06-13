@@ -143,10 +143,10 @@ class BoardPainter extends CustomPainter {
       );
     }
 
-    tri(tl, tr, 'green'); // top
-    tri(tr, br, 'yellow'); // right
-    tri(br, bl, 'blue'); // bottom
-    tri(bl, tl, 'red'); // left
+    tri(tl, tr, 'red'); // top edge → red goal
+    tri(tr, br, 'blue'); // right edge → blue goal
+    tri(br, bl, 'yellow'); // bottom edge → yellow goal
+    tri(bl, tl, 'green'); // left edge → green goal
   }
 
   // ---- Corner yards ----
@@ -308,14 +308,14 @@ enum _Dir { up, down, left, right }
 
 Offset yardCircleCentre(String color, double u) {
   switch (color) {
-    case 'red':
-      return Offset(3 * u, 3 * u);
     case 'green':
-      return Offset(12 * u, 3 * u);
+      return Offset(3 * u, 3 * u); // top-left
+    case 'red':
+      return Offset(12 * u, 3 * u); // top-right
     case 'yellow':
-      return Offset(12 * u, 12 * u);
+      return Offset(3 * u, 12 * u); // bottom-left
     default:
-      return Offset(3 * u, 12 * u); // blue
+      return Offset(12 * u, 12 * u); // blue, bottom-right
   }
 }
 
