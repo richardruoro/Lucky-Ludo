@@ -30,13 +30,13 @@ compiles a debug APK and attaches it to a GitHub Release.
 2. Download `lucky-ludo.apk` and tap it; allow installing from this source if
    prompted. (It's a debug build signed with the standard Android debug key.)
 
-**Trigger a new build** in either of two ways:
+**Builds happen automatically** whenever `index.html` or anything under
+`android/` changes on `main`; the APK is (re)published to the fixed
+`apk-latest` Release at:
+`https://github.com/richardruoro/Lucky-Ludo/releases/latest`
 
-- Actions tab → **Build Android APK** → **Run workflow** (produces a downloadable
-  build artifact), **or**
-- push a tag named `apk-*` (e.g. `git tag apk-latest && git push origin apk-latest`)
-  to build *and* publish a Release with a stable download URL:
-  `https://github.com/richardruoro/Lucky-Ludo/releases/latest`
+You can also build on demand from the Actions tab → **Build Android APK** →
+**Run workflow**.
 
 > The app needs internet on first load (Tailwind / icons / fonts come from CDNs).
 

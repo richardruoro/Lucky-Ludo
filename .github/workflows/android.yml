@@ -3,10 +3,13 @@ name: Build Android APK
 on:
   # Manual run from the Actions tab.
   workflow_dispatch:
-  # Or push a tag like `apk-latest` / `apk-v2` to build + publish a Release.
+  # Auto-build whenever the game or the Android shell changes on main.
   push:
-    tags:
-      - 'apk-*'
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'android/**'
+      - '.github/workflows/android.yml'
 
 permissions:
   contents: write
@@ -55,14 +58,13 @@ jobs:
           name: lucky-ludo-apk
           path: lucky-ludo.apk
 
-      # When triggered by an `apk-*` tag, publish a Release so the APK has a
+      # Publish to a fixed `apk-latest` Release so the APK always has the same
       # stable public download URL you can open straight from your phone.
       - name: Publish to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/apk-')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Lucky Ludo APK (${{ github.ref_name }})
+          tag_name: apk-latest
+          name: Lucky Ludo APK (latest)
           body: |
             **Lucky Ludo** debug APK — install and test on Android.
 
