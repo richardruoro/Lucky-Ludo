@@ -62,14 +62,25 @@ jobs:
           name: lucky-ludo-apk
           path: lucky-ludo.apk
 
+      # Delete the previous apk-latest release + tag so the recreated one below
+      # gets a fresh publish timestamp (otherwise GitHub keeps showing the
+      # original creation time as "latest release X ago").
+      - name: Refresh release (delete old apk-latest)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest --yes --cleanup-tag --repo "${{ github.repository }}" || true
+
       - name: Publish to GitHub Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest
-          name: Lucky Ludo APK (latest)
+          name: Lucky Ludo APK (build ${{ github.run_number }})
           body: |
             **Lucky Ludo** — native Flutter build, fully offline.
+            Build #${{ github.run_number }} · commit ${{ github.sha }}
 
             1. Download `lucky-ludo.apk` on your Android phone.
             2. Open it; allow installing from this source if prompted.
